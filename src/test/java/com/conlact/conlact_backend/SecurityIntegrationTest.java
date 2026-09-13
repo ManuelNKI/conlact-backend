@@ -38,6 +38,9 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
     @Value("${app.supabase.jwt.secret}")
     private String jwtSecret;
 
+    @Value("${app.supabase.jwt.issuer:}")
+    private String jwtIssuer;
+
     private RestClient restClient;
     private UUID testAdminUserId;
 
@@ -68,14 +71,18 @@ public class SecurityIntegrationTest extends BaseIntegrationTest {
         SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         Instant now = Instant.now();
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(userId.toString())
                 .claim("email", email)
                 .claim("role", role)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(validMinutes, ChronoUnit.MINUTES)))
-                .signWith(key)
-                .compact();
+                .expiration(Date.from(now.plus(validMinutes, ChronoUnit.MINUTES)));
+
+        if (jwtIssuer != null && !jwtIssuer.isBlank()) {
+            builder.issuer(jwtIssuer);
+        }
+
+        return builder.signWith(key).compact();
     }
 
     @Test
