@@ -11,5 +11,14 @@ import java.util.UUID;
 @Repository
 public interface AssociationRepository extends JpaRepository<Association, UUID> {
     Optional<Association> findBySlug(String slug);
+
     List<Association> findByIsPublishedTrue();
+
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsBySlug(String slug);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, UUID id);
+
+    boolean existsBySlugAndIdNot(String slug, UUID id);
 }
