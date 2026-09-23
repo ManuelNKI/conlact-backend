@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,4 +62,13 @@ public class AssociationResponse {
 
     @JsonProperty("facebook_url")
     private String facebookUrl;
+
+    @JsonProperty("is_published")
+    private Boolean isPublished;
+
+    @JsonProperty("created_at")
+    private OffsetDateTime createdAt;
+
+    @JsonProperty("updated_at")
+    private OffsetDateTime updatedAt;
 }
