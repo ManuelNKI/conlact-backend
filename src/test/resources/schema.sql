@@ -560,11 +560,12 @@ create table public.association_images (
     updated_at timestamptz not null default now(),
     constraint association_images_sort_order_ck check (sort_order >= 0),
     constraint association_images_url_length_ck check (length(url) <= 2048),
+    constraint association_images_alt_text_ck check (alt_text is null or (length(trim(alt_text)) > 0 and length(alt_text) <= 255)),
     constraint association_images_unique_url unique (association_id, url)
 );
 
 create index idx_association_images_association on public.association_images(association_id);
-create index idx_association_images_gallery on public.association_images(association_id, image_type, sort_order);
+create index idx_association_images_gallery on public.association_images(association_id, sort_order, created_at, id);
 
 create trigger trg_association_images_updated_at
     before update on public.association_images

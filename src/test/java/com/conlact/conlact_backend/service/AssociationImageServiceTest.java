@@ -75,7 +75,7 @@ class AssociationImageServiceTest {
     @DisplayName("TC-BE14-13: Consulta galería ordenada con asociación publicada retorna 200 con imágenes")
     void testGetPublishedAssociationImages() {
         when(associationRepository.findById(associationId)).thenReturn(Optional.of(publishedAssociation));
-        when(associationImageRepository.findByAssociationIdOrderBySortOrderAscCreatedAtAsc(associationId))
+        when(associationImageRepository.findByAssociationIdOrderBySortOrderAscCreatedAtAscIdAsc(associationId))
                 .thenReturn(List.of(imageFacility));
 
         AssociationGalleryResponse response = associationImageService.getPublishedAssociationImages(associationId);
@@ -256,7 +256,7 @@ class AssociationImageServiceTest {
         when(associationRepository.findById(associationId)).thenReturn(Optional.of(publishedAssociation));
         when(associationImageRepository.findByIdAndAssociationId(imgId1, associationId)).thenReturn(Optional.of(img1));
         when(associationImageRepository.findByIdAndAssociationId(imgId2, associationId)).thenReturn(Optional.of(img2));
-        when(associationImageRepository.findByAssociationIdOrderBySortOrderAscCreatedAtAsc(associationId))
+        when(associationImageRepository.findByAssociationIdOrderBySortOrderAscCreatedAtAscIdAsc(associationId))
                 .thenReturn(List.of(img1, img2));
 
         ReorderAssociationImagesRequest reorderReq = ReorderAssociationImagesRequest.builder()
@@ -272,5 +272,40 @@ class AssociationImageServiceTest {
         assertThat(img1.getSortOrder()).isEqualTo(1);
         assertThat(img2.getSortOrder()).isEqualTo(2);
         verify(associationImageRepository, times(2)).save(any(AssociationImage.class));
+    }
+
+    @Test
+    @DisplayName("Reordenar con IDs duplicados lanza BadRequestException")
+    void testReorderAssociationImagesDuplicateIdsThrowsBadRequest() {
+        UUID imgId1 = UUID.randomUUID();
+
+        when(associationRepository.findById(associationId)).thenReturn(Optional.of(publishedAssociation));
+
+        ReorderAssociationImagesRequest reorderReq = ReorderAssociationImagesRequest.builder()
+                .images(List.of(
+                        new ImageOrderItemRequest(imgId1, 1),
+                        new ImageOrderItemRequest(imgId1, 2)
+                ))
+                .build();
+
+        assertThatThrownBy(() -> associationImageService.reorderAssociationImages(associationId, reorderReq))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("duplicados");
+    }
+
+    @Test
+    @DisplayName("Registrar imagen con alt_text vacío lanza BadRequestException")
+    void testCreateImageEmptyAltTextThrowsBadRequest() {
+        CreateAssociationImageRequest request = CreateAssociationImageRequest.builder()
+                .url("https://example.com/foto.jpg")
+                .imageType(AssociationImageType.facility)
+                .altText("   ")
+                .build();
+
+        when(associationRepository.findById(associationId)).thenReturn(Optional.of(publishedAssociation));
+
+        assertThatThrownBy(() -> associationImageService.createAssociationImage(associationId, request))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("cadena vacía");
     }
 }

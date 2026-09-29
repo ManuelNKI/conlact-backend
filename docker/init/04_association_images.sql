@@ -1,8 +1,14 @@
 -- ============================================================
--- CONLAC-T - MVP Tienda Web
+-- CONLAC-T - Inicialización local Docker
 -- [BE-14] Gestión de URLs de Fotos de Asociaciones
 -- Entidad: association_images
--- Archivo: 20260928_create_association_images.sql
+--
+-- IMPORTANTE:
+-- Este archivo debe mantenerse sincronizado con:
+-- supabase/migrations/20260928_create_association_images.sql
+--
+-- La migración ubicada en supabase/migrations constituye
+-- la fuente oficial del cambio de base de datos.
 -- ============================================================
 
 begin;

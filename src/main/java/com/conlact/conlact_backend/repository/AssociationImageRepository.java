@@ -11,7 +11,7 @@ import java.util.UUID;
 @Repository
 public interface AssociationImageRepository extends JpaRepository<AssociationImage, UUID> {
 
-    List<AssociationImage> findByAssociationIdOrderBySortOrderAscCreatedAtAsc(UUID associationId);
+    List<AssociationImage> findByAssociationIdOrderBySortOrderAscCreatedAtAscIdAsc(UUID associationId);
 
     Optional<AssociationImage> findByIdAndAssociationId(UUID id, UUID associationId);
 

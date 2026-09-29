@@ -29,7 +29,7 @@ public class CreateAssociationImageRequest {
     @JsonProperty("image_type")
     private AssociationImageType imageType;
 
-    @Size(max = 500, message = "El texto alternativo no puede superar 500 caracteres")
+    @Size(max = 255, message = "El texto alternativo no puede superar 255 caracteres")
     @JsonProperty("alt_text")
     private String altText;
 

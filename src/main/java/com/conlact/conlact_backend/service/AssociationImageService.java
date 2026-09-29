@@ -30,7 +30,7 @@ public class AssociationImageService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asociación no encontrada o no publicada"));
 
         List<AssociationImageItemResponse> images = associationImageRepository
-                .findByAssociationIdOrderBySortOrderAscCreatedAtAsc(association.getId())
+                .findByAssociationIdOrderBySortOrderAscCreatedAtAscIdAsc(association.getId())
                 .stream()
                 .map(this::toItemResponse)
                 .toList();
@@ -46,7 +46,7 @@ public class AssociationImageService {
                 .orElseThrow(() -> new ResourceNotFoundException("Asociación no encontrada"));
 
         List<AssociationImageItemResponse> images = associationImageRepository
-                .findByAssociationIdOrderBySortOrderAscCreatedAtAsc(association.getId())
+                .findByAssociationIdOrderBySortOrderAscCreatedAtAscIdAsc(association.getId())
                 .stream()
                 .map(this::toItemResponse)
                 .toList();
@@ -74,6 +74,18 @@ public class AssociationImageService {
             throw new BadRequestException("El orden de despliegue no puede ser negativo");
         }
 
+        String altText = null;
+        if (request.getAltText() != null) {
+            String trimmed = request.getAltText().trim();
+            if (trimmed.isEmpty()) {
+                throw new BadRequestException("El texto alternativo no puede ser una cadena vacía");
+            }
+            if (trimmed.length() > 255) {
+                throw new BadRequestException("El texto alternativo no puede superar los 255 caracteres");
+            }
+            altText = trimmed;
+        }
+
         String normalizedUrl = request.getUrl().trim();
         if (associationImageRepository.existsByAssociationIdAndUrl(associationId, normalizedUrl)) {
             throw new ConflictException("La URL ya se encuentra vinculada a esta asociación");
@@ -83,7 +95,7 @@ public class AssociationImageService {
                 .association(association)
                 .imageType(request.getImageType())
                 .url(normalizedUrl)
-                .altText(request.getAltText() != null ? request.getAltText().trim() : null)
+                .altText(altText)
                 .sortOrder(request.getSortOrder() != null ? request.getSortOrder() : 0)
                 .build();
 
@@ -120,7 +132,14 @@ public class AssociationImageService {
         }
 
         if (request.getAltText() != null) {
-            image.setAltText(request.getAltText().trim());
+            String trimmed = request.getAltText().trim();
+            if (trimmed.isEmpty()) {
+                throw new BadRequestException("El texto alternativo no puede ser una cadena vacía");
+            }
+            if (trimmed.length() > 255) {
+                throw new BadRequestException("El texto alternativo no puede superar los 255 caracteres");
+            }
+            image.setAltText(trimmed);
         }
 
         if (request.getSortOrder() != null) {
@@ -155,11 +174,20 @@ public class AssociationImageService {
             throw new BadRequestException("La lista de imágenes a reordenar no puede estar vacía");
         }
 
+        java.util.Set<UUID> seenIds = new java.util.HashSet<>();
         for (ImageOrderItemRequest item : request.getImages()) {
+            if (item.getId() == null) {
+                throw new BadRequestException("El id de la fotografía es obligatorio en el reordenamiento");
+            }
+            if (!seenIds.add(item.getId())) {
+                throw new BadRequestException("No se permiten identificadores de imagen duplicados en la solicitud de reordenamiento");
+            }
             if (item.getSortOrder() == null || item.getSortOrder() < 0) {
                 throw new BadRequestException("El orden no puede ser negativo");
             }
+        }
 
+        for (ImageOrderItemRequest item : request.getImages()) {
             AssociationImage image = associationImageRepository.findByIdAndAssociationId(item.getId(), associationId)
                     .orElseThrow(() -> new ResourceNotFoundException("La imagen con id " + item.getId() + " no pertenece a la asociación indicada"));
 
@@ -168,7 +196,7 @@ public class AssociationImageService {
         }
 
         List<AssociationImageItemResponse> updatedImages = associationImageRepository
-                .findByAssociationIdOrderBySortOrderAscCreatedAtAsc(association.getId())
+                .findByAssociationIdOrderBySortOrderAscCreatedAtAscIdAsc(association.getId())
                 .stream()
                 .map(this::toItemResponse)
                 .toList();

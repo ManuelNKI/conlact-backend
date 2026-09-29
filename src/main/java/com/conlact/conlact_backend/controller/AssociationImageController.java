@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/associations/{associationId}/fotos")
+@RequestMapping({"/api/associations/{associationId}/images", "/api/associations/{associationId}/fotos"})
 @RequiredArgsConstructor
 public class AssociationImageController {
 
