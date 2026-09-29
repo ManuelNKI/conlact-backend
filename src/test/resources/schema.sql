@@ -540,6 +540,39 @@ on conflict (id) do update set
     file_size_limit = excluded.file_size_limit,
     allowed_mime_types = excluded.allowed_mime_types;
 
+-- ------------------------------------------------------------
+-- 21. Fotos de Asociaciones [BE-14]
+-- ------------------------------------------------------------
+create type public.association_image_type as enum (
+    'facility',
+    'producer',
+    'seal'
+);
+
+create table public.association_images (
+    id uuid primary key default gen_random_uuid(),
+    association_id uuid not null references public.associations(id) on delete cascade,
+    image_type public.association_image_type not null,
+    url text not null,
+    alt_text text,
+    sort_order integer not null default 0,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    constraint association_images_sort_order_ck check (sort_order >= 0),
+    constraint association_images_url_length_ck check (length(url) <= 2048),
+    constraint association_images_unique_url unique (association_id, url)
+);
+
+create index idx_association_images_association on public.association_images(association_id);
+create index idx_association_images_gallery on public.association_images(association_id, image_type, sort_order);
+
+create trigger trg_association_images_updated_at
+    before update on public.association_images
+    for each row
+    execute function public.set_updated_at();
+
+alter table public.association_images enable row level security;
+
 commit;
 
 -- ============================================================
