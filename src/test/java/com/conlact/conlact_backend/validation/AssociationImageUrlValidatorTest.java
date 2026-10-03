@@ -15,6 +15,8 @@ class AssociationImageUrlValidatorTest {
             "https://storage.example.com/asociaciones/lindero/productores/productor-01.jpg",
             "https://storage.example.com/asociaciones/lindero/productores/productor-02.jpeg",
             "https://storage.example.com/asociaciones/lindero/sellos/arcsa.png",
+            "https://cdn.conlact.com/logos/logo-asociacion.svg",
+            "https://cdn.conlact.com/photos/image.avif",
             "https://cdn.conlact.com/photos/image.PNG",
             "https://cdn.conlact.com/photos/image.WEBP"
     })
@@ -33,7 +35,6 @@ class AssociationImageUrlValidatorTest {
             "https://example.com/documento.pdf",
             "https://example.com/programa.exe",
             "https://example.com/foto.gif",
-            "https://example.com/foto.svg",
             "https://example.com/",
             "not-a-valid-url"
     })

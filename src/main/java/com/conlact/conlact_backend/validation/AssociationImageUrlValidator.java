@@ -10,7 +10,9 @@ public final class AssociationImageUrlValidator {
             ".jpg",
             ".jpeg",
             ".png",
-            ".webp"
+            ".webp",
+            ".svg",
+            ".avif"
     );
 
     private AssociationImageUrlValidator() {
