@@ -84,7 +84,11 @@ docker compose up -d
 - **Puerto:** `5435`
 - **Base de datos:** `conlact_local`
 - **Usuario / Contraseña:** `postgres` / `postgres`
-- **Scripts de inicialización automática:** [`docker/init/01_CONLACT_Modelo_Base.sql`](docker/init/01_CONLACT_Modelo_Base.sql) y [`02_seed.sql`](docker/init/02_seed.sql).
+- **Scripts de inicialización automática:**
+  - [`docker/init/01_CONLACT_Modelo_Base.sql`](docker/init/01_CONLACT_Modelo_Base.sql): Esquema relacional base y RLS.
+  - [`docker/init/02_seed.sql`](docker/init/02_seed.sql): Datos maestros de prueba y asociaciones.
+  - [`docker/init/03_storage_buckets.sql`](docker/init/03_storage_buckets.sql): Configuración de buckets y storage.
+  - [`docker/init/04_association_images.sql`](docker/init/04_association_images.sql): Gestión de URLs de fotos de asociaciones [BE-14].
 
 ---
 

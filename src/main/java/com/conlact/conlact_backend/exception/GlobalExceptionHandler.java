@@ -130,9 +130,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleResponseStatusException(
             ResponseStatusException ex, HttpServletRequest request) {
 
+        HttpStatus resolved = HttpStatus.resolve(ex.getStatusCode().value());
+        String errorPhrase = resolved != null ? resolved.getReasonPhrase() : ex.getStatusCode().toString();
+
         ErrorResponse errorResponse = new ErrorResponse(
                 ex.getStatusCode().value(),
-                ex.getStatusCode().toString(),
+                errorPhrase,
                 ex.getReason() != null ? ex.getReason() : ex.getMessage(),
                 request.getRequestURI()
         );
