@@ -65,7 +65,7 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor,
             if (!envProperties.isEmpty()) {
                 // Registrar las propiedades con alta prioridad en el entorno de Spring
                 environment.getPropertySources().addFirst(new MapPropertySource("dotenvProperties", envProperties));
-                log.info("Archivo .env cargado exitosamente ({} variables configuradas)", envProperties.size());
+                log.info("Archivo .env cargado exitosamente desde {} ({} variables configuradas)", envPath.toAbsolutePath(), envProperties.size());
             }
         } catch (IOException e) {
             log.warn("No se pudo leer el archivo .env en {}: {}", envPath, e.getMessage());
@@ -79,6 +79,17 @@ public class DotenvEnvironmentPostProcessor implements EnvironmentPostProcessor,
             Path userDirPath = Paths.get(userDir, ".env");
             if (Files.exists(userDirPath)) {
                 return userDirPath;
+            }
+            Path subPath = Paths.get(userDir, "conlact-backend", ".env");
+            if (Files.exists(subPath)) {
+                return subPath;
+            }
+            Path parent = Paths.get(userDir).getParent();
+            if (parent != null) {
+                Path parentEnv = parent.resolve(".env");
+                if (Files.exists(parentEnv)) {
+                    return parentEnv;
+                }
             }
         }
 

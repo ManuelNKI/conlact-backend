@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/admin/associations")
+@RequestMapping({"/api/admin/asociaciones", "/api/admin/associations"})
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class AdminAssociationController {

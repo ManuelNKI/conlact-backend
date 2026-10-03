@@ -220,6 +220,13 @@ public class AssociationService {
     }
 
     private AssociationResponse toResponse(Association association) {
+        AssociationResponse.SocialNetworksDto socialNetworks = AssociationResponse.SocialNetworksDto.builder()
+                .facebook(association.getFacebookUrl())
+                .instagram(association.getInstagramUrl())
+                .tiktok(association.getTiktokUrl())
+                .whatsapp(association.getWhatsapp())
+                .build();
+
         return AssociationResponse.builder()
                 .id(association.getId())
                 .slug(association.getSlug())
@@ -227,17 +234,22 @@ public class AssociationService {
                 .shortDescription(association.getShortDescription())
                 .history(association.getHistory())
                 .locationText(association.getLocationText())
+                .referenceLocation(association.getLocationText())
                 .photos(Collections.emptyList())
                 .videoUrl(association.getVideoUrl())
                 .sanitarySeal(association.getSanitarySealText())
                 .arcsaRegistration(association.getArcsaRegistration())
+                .arcsaSeal(association.getArcsaRegistration())
                 .agrocalidadRegistration(association.getAgrocalidadRegistration())
+                .bpmRegistration(association.getAgrocalidadRegistration())
                 .latitude(association.getLatitude())
                 .longitude(association.getLongitude())
                 .whatsapp(association.getWhatsapp())
+                .associationContact(association.getWhatsapp())
                 .instagramUrl(association.getInstagramUrl())
                 .tiktokUrl(association.getTiktokUrl())
                 .facebookUrl(association.getFacebookUrl())
+                .socialNetworks(socialNetworks)
                 .isPublished(association.getIsPublished())
                 .createdAt(association.getCreatedAt())
                 .updatedAt(association.getUpdatedAt())

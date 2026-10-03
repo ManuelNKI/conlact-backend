@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 @Builder
@@ -36,6 +37,12 @@ public class AssociationCreateRequest {
     @JsonProperty("ubicacion")
     private String locationText;
 
+    @JsonProperty("ubicacion_referencia")
+    private String referenceLocation;
+
+    @JsonProperty("fotos")
+    private List<String> photos;
+
     @DecimalMin(value = "-90.0", message = "La latitud debe ser mayor o igual a -90")
     @DecimalMax(value = "90.0", message = "La latitud debe ser menor o igual a 90")
     @JsonProperty("lat")
@@ -49,6 +56,9 @@ public class AssociationCreateRequest {
     @Size(max = 100, message = "El registro ARCSA no puede exceder 100 caracteres")
     @JsonProperty("registro_arcsa")
     private String arcsaRegistration;
+
+    @JsonProperty("sello_arcsa")
+    private String arcsaSeal;
 
     @Size(max = 100, message = "El registro AGROCALIDAD no puede exceder 100 caracteres")
     @JsonProperty("registro_agrocalidad")
@@ -77,4 +87,12 @@ public class AssociationCreateRequest {
     @JsonProperty("is_published")
     @Builder.Default
     private Boolean isPublished = true;
+
+    public String getArcsaRegistration() {
+        return (arcsaRegistration != null && !arcsaRegistration.isBlank()) ? arcsaRegistration : arcsaSeal;
+    }
+
+    public String getLocationText() {
+        return (locationText != null && !locationText.isBlank()) ? locationText : referenceLocation;
+    }
 }
