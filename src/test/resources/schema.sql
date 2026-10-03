@@ -183,6 +183,7 @@ create table public.product_variants (
     stock integer not null default 0,
     low_stock_threshold integer not null default 5,
     is_active boolean not null default true,
+    version bigint not null default 0,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now(),
     constraint product_variants_weight_ck

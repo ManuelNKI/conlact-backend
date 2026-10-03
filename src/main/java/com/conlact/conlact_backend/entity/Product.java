@@ -80,4 +80,14 @@ public class Product {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    public void addVariant(ProductVariant variant) {
+        variants.add(variant);
+        variant.setProduct(this);
+    }
+
+    public void removeVariant(ProductVariant variant) {
+        variants.remove(variant);
+        variant.setProduct(null);
+    }
 }
