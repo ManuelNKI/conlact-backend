@@ -52,7 +52,7 @@ public class SecurityConfig {
 
                         // Checkout y Formulario de Contacto (Públicos para clientes finales)
                         .requestMatchers(HttpMethod.POST, "/api/orders", "/api/pedidos").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/orders/track/**", "/api/pedidos/track/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/orders/**", "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/contact", "/api/contacto").permitAll()
 
                         // Webhooks de pasarelas de pago (PayPhone u otros)
