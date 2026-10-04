@@ -31,6 +31,9 @@ class ProductControllerTest {
     @Mock
     private ProductService productService;
 
+    @Mock
+    private com.conlact.conlact_backend.service.ProductImageService productImageService;
+
     @InjectMocks
     private ProductController productController;
 

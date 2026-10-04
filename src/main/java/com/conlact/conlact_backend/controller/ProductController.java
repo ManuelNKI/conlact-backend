@@ -1,6 +1,8 @@
 package com.conlact.conlact_backend.controller;
 
 import com.conlact.conlact_backend.dto.product.ProductPublicResponse;
+import com.conlact.conlact_backend.dto.product.image.ProductImageResponse;
+import com.conlact.conlact_backend.service.ProductImageService;
 import com.conlact.conlact_backend.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductImageService productImageService;
 
     @GetMapping
     public ResponseEntity<List<ProductPublicResponse>> getProducts(
@@ -35,5 +38,10 @@ public class ProductController {
 
         ProductPublicResponse product = productService.getPublishedProductByIdOrSlug(identifier);
         return ResponseEntity.ok(product);
+    }
+
+    @GetMapping({"/{identifier}/imagenes", "/{identifier}/images", "/{identifier}/fotos", "/{identifier}/photos"})
+    public ResponseEntity<List<ProductImageResponse>> getProductImages(@PathVariable String identifier) {
+        return ResponseEntity.ok(productImageService.getPublicProductImages(identifier));
     }
 }

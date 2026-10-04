@@ -38,4 +38,8 @@ public class ProductImage {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
+
+    public boolean isPrimary() {
+        return sortOrder != null && sortOrder == 0;
+    }
 }
