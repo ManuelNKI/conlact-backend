@@ -1,6 +1,7 @@
 package com.conlact.conlact_backend.entity;
 
 import com.conlact.conlact_backend.exception.InsufficientStockException;
+import com.conlact.conlact_backend.exception.BadRequestException;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -107,6 +108,9 @@ public class ProductVariant {
     public void addStock(int quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("La cantidad a reabastecer debe ser mayor a cero");
+        }
+        if ((long) this.stock + quantity > Integer.MAX_VALUE) {
+            throw new BadRequestException("El stock resultante supera el máximo permitido");
         }
         this.stock += quantity;
     }

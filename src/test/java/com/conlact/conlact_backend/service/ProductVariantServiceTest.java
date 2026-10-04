@@ -83,7 +83,7 @@ class ProductVariantServiceTest {
 
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(productVariantRepository.existsBySkuIgnoreCase("AND-CUN-250")).thenReturn(false);
-        when(productVariantRepository.save(any(ProductVariant.class))).thenReturn(variant);
+        when(productVariantRepository.saveAndFlush(any(ProductVariant.class))).thenReturn(variant);
 
         ProductVariantResponse response = productVariantService.createVariant(productId, request);
 
@@ -92,7 +92,7 @@ class ProductVariantServiceTest {
         assertEquals("Cuña 250g", response.getPresentationName());
         assertEquals(30, response.getStock());
         assertEquals(0L, response.getVersion());
-        verify(productVariantRepository).save(any(ProductVariant.class));
+        verify(productVariantRepository).saveAndFlush(any(ProductVariant.class));
     }
 
     @Test
@@ -109,7 +109,7 @@ class ProductVariantServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> productVariantService.createVariant(productId, request));
-        verify(productVariantRepository, never()).save(any());
+        verify(productVariantRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -127,7 +127,7 @@ class ProductVariantServiceTest {
 
         assertThrows(ConflictException.class,
                 () -> productVariantService.createVariant(productId, request));
-        verify(productVariantRepository, never()).save(any());
+        verify(productVariantRepository, never()).saveAndFlush(any());
     }
 
     @Test
