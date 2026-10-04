@@ -75,7 +75,7 @@ public class ProductVariantService {
                 .version(0L)
                 .build();
 
-        ProductVariant savedVariant = productVariantRepository.save(variant);
+        ProductVariant savedVariant = productVariantRepository.saveAndFlush(variant);
         log.info("Variante creada con ID: {}, SKU: {}, Producto: {}",
                 savedVariant.getId(), savedVariant.getSku(), productId);
 
@@ -114,7 +114,7 @@ public class ProductVariantService {
             variant.setIsActive(request.getIsActive());
         }
 
-        ProductVariant updatedVariant = productVariantRepository.save(variant);
+        ProductVariant updatedVariant = productVariantRepository.saveAndFlush(variant);
         log.info("Variante actualizada con ID: {}, SKU: {}", updatedVariant.getId(), updatedVariant.getSku());
 
         return ProductVariantResponse.fromEntity(updatedVariant);
