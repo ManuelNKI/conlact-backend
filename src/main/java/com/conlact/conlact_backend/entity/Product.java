@@ -90,4 +90,14 @@ public class Product {
         variants.remove(variant);
         variant.setProduct(null);
     }
+
+    public void addImage(ProductImage image) {
+        images.add(image);
+        image.setProduct(this);
+    }
+
+    public void removeImage(ProductImage image) {
+        images.remove(image);
+        image.setProduct(null);
+    }
 }

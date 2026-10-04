@@ -31,19 +31,20 @@ class AdminEndpointSecurityTest {
     @MockitoBean private AdminProductService adminProductService;
     @MockitoBean private ProductVariantService productVariantService;
     @MockitoBean private AdminInventoryService adminInventoryService;
+    @MockitoBean private ProductImageService productImageService;
 
     @ParameterizedTest
-    @ValueSource(strings = {"/api/admin/productos", "/api/admin/products", "/api/admin/testimonios", "/api/admin/testimonials", "/api/admin/variantes/00000000-0000-0000-0000-000000000001/stock/deduct", "/api/admin/variants/00000000-0000-0000-0000-000000000001/stock/set"})
-    @DisplayName("BE-15/BE-19: Toda escritura administrativa requiere autenticación")
+    @ValueSource(strings = {"/api/admin/productos", "/api/admin/products", "/api/admin/testimonios", "/api/admin/testimonials", "/api/admin/variantes/00000000-0000-0000-0000-000000000001/stock/deduct", "/api/admin/variants/00000000-0000-0000-0000-000000000001/stock/set", "/api/admin/productos/00000000-0000-0000-0000-000000000001/imagenes", "/api/admin/products/00000000-0000-0000-0000-000000000001/images"})
+    @DisplayName("BE-15/BE-19/BE-20: Toda escritura administrativa requiere autenticación")
     void shouldRejectAnonymousWrites(String path) throws Exception {
         mvc.perform(post(path).contentType("application/json").content("{}"))
                 .andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/api/admin/productos", "/api/admin/products", "/api/admin/testimonios", "/api/admin/testimonials", "/api/admin/variantes/00000000-0000-0000-0000-000000000001/stock/deduct", "/api/admin/variants/00000000-0000-0000-0000-000000000001/stock/replenish"})
+    @ValueSource(strings = {"/api/admin/productos", "/api/admin/products", "/api/admin/testimonios", "/api/admin/testimonials", "/api/admin/variantes/00000000-0000-0000-0000-000000000001/stock/deduct", "/api/admin/variants/00000000-0000-0000-0000-000000000001/stock/replenish", "/api/admin/productos/00000000-0000-0000-0000-000000000001/imagenes", "/api/admin/products/00000000-0000-0000-0000-000000000001/images"})
     @WithMockUser(roles = "USER")
-    @DisplayName("BE-15/BE-19: Un usuario autenticado sin rol ADMIN recibe 403")
+    @DisplayName("BE-15/BE-19/BE-20: Un usuario autenticado sin rol ADMIN recibe 403")
     void shouldRejectNonAdminWrites(String path) throws Exception {
         mvc.perform(post(path).contentType("application/json").content("{}"))
                 .andExpect(status().isForbidden());
