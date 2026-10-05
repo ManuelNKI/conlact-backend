@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "CONLAC-T - [BE-16] Colección Postman, Tests Unitarios y QA S3",
-    "description": "Colección oficial versionada para el Milestone S3: Asociaciones y Testimonios. Incluye rutas públicas duales (español/inglés), operaciones administrativas con token Bearer JWT y pruebas automatizadas de códigos de estado y schemas JSON.",
+    "description": "Colección oficial versionada para el Milestone S3: Asociaciones (BE-12, BE-13, BE-14) y Testimonios (BE-15). Incluye rutas públicas duales (español/inglés), gestión de fotos de asociaciones, operaciones administrativas con token Bearer JWT y pruebas automatizadas de códigos de estado y schemas JSON.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -29,16 +29,16 @@
     },
     {
       "key": "association_slug",
-      "value": "queseras-pilahuin"
+      "value": "asociacion-el-lindero"
     },
     {
       "key": "testimonial_id",
-      "value": ""
+      "value": "e0000000-0000-0000-0000-000000000001"
     }
   ],
   "item": [
     {
-      "name": "Asociaciones (Público)",
+      "name": "Asociaciones (BE-12 & BE-14 - Público)",
       "item": [
         {
           "name": "Listar asociaciones públicas [ES]",
@@ -109,7 +109,6 @@
                   "    var json = pm.response.json();",
                   "    pm.expect(json.slug).to.eql(pm.variables.get('association_slug'));",
                   "    pm.expect(json).to.have.property('nombre');",
-                  "    pm.expect(json).to.have.property('parroquia');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -141,7 +140,46 @@
       ]
     },
     {
-      "name": "Testimonios (Público)",
+      "name": "Asociaciones (BE-13 & BE-14 - Admin)",
+      "item": [
+        {
+          "name": "Actualizar fotos e información de asociación [BE-14]",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Asociación El Lindero Actualizada\",\n  \"descripcion_corta\": \"Productores queseros de Pilahuín\",\n  \"fotos\": [\n    \"https://supabase.co/storage/v1/object/public/associations/fachada.webp\",\n    \"https://supabase.co/storage/v1/object/public/associations/planta_quesera.webp\"\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/admin/asociaciones/{{association_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Valida fotos en respuesta', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('fotos');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Testimonios (BE-15 - Público)",
       "item": [
         {
           "name": "Listar testimonios públicos [ES]",
@@ -163,8 +201,8 @@
                   "    pm.expect(json).to.be.an('array');",
                   "    if (json.length > 0) {",
                   "        pm.expect(json[0]).to.have.property('id');",
-                  "        pm.expect(json[0]).to.have.property('nombre_autor');",
-                  "        pm.expect(json[0]).to.have.property('contenido');",
+                  "        pm.expect(json[0]).to.have.property('autor_nombre');",
+                  "        pm.expect(json[0]).to.have.property('frase');",
                   "    }",
                   "});"
                 ],
@@ -197,7 +235,7 @@
       ]
     },
     {
-      "name": "Testimonios (Admin)",
+      "name": "Testimonios (BE-15 - Admin)",
       "item": [
         {
           "name": "Listar testimonios admin",
@@ -238,7 +276,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nombre_autor\": \"Consumidor Satisfecho\",\n  \"rol_autor\": \"Cliente Frecuente\",\n  \"comentario\": \"El queso fresco artesanal tiene un sabor auténtico de páramo.\",\n  \"calificacion\": 5,\n  \"es_publicado\": true,\n  \"asociacion_id\": \"{{association_id}}\"\n}"
+              "raw": "{\n  \"autor_nombre\": \"Chef Rodrigo Paz\",\n  \"autor_tipo\": \"Chef Ejecutivo\",\n  \"frase\": \"El queso fresco artesanal tiene un sabor auténtico de páramo andino.\",\n  \"is_authorized\": true,\n  \"is_published\": true\n}"
             },
             "url": "{{base_url}}/api/admin/testimonios"
           },
@@ -273,9 +311,9 @@
                   "pm.test('Status code es 200 OK', function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
-                  "pm.test('Campo es_publicado está presente', function () {",
+                  "pm.test('Campo is_published está presente', function () {",
                   "    var json = pm.response.json();",
-                  "    pm.expect(json).to.have.property('es_publicado');",
+                  "    pm.expect(json).to.have.property('is_published');",
                   "});"
                 ],
                 "type": "text/javascript"

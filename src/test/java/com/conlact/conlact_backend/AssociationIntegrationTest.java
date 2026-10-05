@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -74,10 +75,11 @@ class AssociationIntegrationTest extends AdminApiIntegrationSupport {
                 "descripcion_corta", "Productores de Pilahuín",
                 "historia", "Asociación comunitaria de productores de altura",
                 "ubicacion", "Sector El Lindero, Tungurahua",
-                "sello_sanitario", "BPM-TEST-" + uniqueSuffix
+                "sello_sanitario", "BPM-TEST-" + uniqueSuffix,
+                "fotos", List.of("https://supabase.co/storage/v1/object/public/associations/fachada.webp")
         );
 
-        // 1. Crear asociación
+        // 1. Crear asociación (BE-13 / BE-14)
         var createResponse = request(HttpMethod.POST, "/api/admin/asociaciones", createPayload, token);
         assertThat(createResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
@@ -86,21 +88,28 @@ class AssociationIntegrationTest extends AdminApiIntegrationSupport {
         String createdSlug = createdBody.path("slug").asText();
         assertThat(createdId).isNotBlank();
         assertThat(createdSlug).isNotBlank();
+        assertThat(createdBody.path("fotos").isArray()).isTrue();
 
         // 2. Consultar por admin
         var getAdminResponse = request(HttpMethod.GET, "/api/admin/asociaciones/" + createdId, null, token);
         assertThat(getAdminResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(json(getAdminResponse).path("nombre").asText()).isEqualTo(name);
+        assertThat(json(getAdminResponse).path("fotos").isArray()).isTrue();
 
-        // 3. Editar datos
+        // 3. Editar datos y fotos (BE-14)
         Map<String, Object> updatePayload = Map.of(
                 "nombre", name + " Modificada",
-                "descripcion_corta", "Nueva descripción actualizada"
+                "descripcion_corta", "Nueva descripción actualizada",
+                "fotos", List.of(
+                        "https://supabase.co/storage/v1/object/public/associations/fachada.webp",
+                        "https://supabase.co/storage/v1/object/public/associations/planta_quesera.webp"
+                )
         );
         var updateResponse = request(HttpMethod.PUT, "/api/admin/asociaciones/" + createdId, updatePayload, token);
         assertThat(updateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(json(updateResponse).path("nombre").asText()).isEqualTo(name + " Modificada");
         assertThat(json(updateResponse).path("descripcion_corta").asText()).isEqualTo("Nueva descripción actualizada");
+        assertThat(json(updateResponse).path("fotos").isArray()).isTrue();
 
         // 4. Baja lógica
         var deleteResponse = request(HttpMethod.DELETE, "/api/admin/asociaciones/" + createdId, null, token);

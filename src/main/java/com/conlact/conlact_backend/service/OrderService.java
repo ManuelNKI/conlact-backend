@@ -332,6 +332,46 @@ public class OrderService {
         return saved;
     }
 
+    /**
+     * BE-30 / BE-31: Libera de forma transaccional todas las reservas de stock vencidas
+     * (expiradas por superar el tiempo límite sin completar el pago), restituye el inventario
+     * físico a cada variante y transiciona la orden asociada a cancelada.
+     */
+    @Transactional
+    public int releaseExpiredReservations() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<InventoryReservation> expired = inventoryReservationRepository
+                .findByStatusAndExpiresAtBefore(ReservationStatus.active, now);
+
+        if (expired.isEmpty()) {
+            return 0;
+        }
+
+        log.info("Procesando expiración automática de {} reservas de inventario vencidas...", expired.size());
+        for (InventoryReservation res : expired) {
+            res.setStatus(ReservationStatus.released);
+            ProductVariant variant = res.getProductVariant();
+            if (variant != null) {
+                variant.addStock(res.getQuantity());
+                productVariantRepository.save(variant);
+                log.info("Stock restituido por expiración: +{} para variante SKU: {}", res.getQuantity(), variant.getSku());
+            }
+
+            Order order = res.getOrder();
+            if (order != null && order.getStatus() == OrderStatus.pending) {
+                order.setStatus(OrderStatus.cancelled);
+                order.setPaymentStatus(PaymentStatus.rejected);
+                String note = order.getAdministrativeNotes() != null
+                        ? order.getAdministrativeNotes() + " | Cancelado por expiración de reserva temporal"
+                        : "Cancelado por expiración de reserva temporal";
+                order.setAdministrativeNotes(note);
+                orderRepository.save(order);
+            }
+        }
+        inventoryReservationRepository.saveAll(expired);
+        return expired.size();
+    }
+
     private DeliveryMethod parseDeliveryMethod(String method) {
         if (method == null || method.isBlank()) {
             throw new BadRequestException("El método de entrega es requerido ('delivery' o 'pickup')");

@@ -17,6 +17,9 @@ class OrderTransactionalFlowIntegrationTest extends AdminApiIntegrationSupport {
     private static final String VARIANT_ID = "ba000000-0000-0000-0000-000000000001"; // LIN-FRE-500, stock inicial: 80
     private static final String SHIPPING_ZONE_ID = "f0000000-0000-0000-0000-000000000001"; // Ambato Urbano, fee: 1.50
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.conlact.conlact_backend.service.OrderService orderService;
+
     @Test
     @DisplayName("BE-31: Flujo de compra exitoso: orden creada -> reserva de stock -> webhook payphone aprobado -> confirmación de pedido y consumo de reserva")
     void testSuccessfulOrderAndWebhookPaymentFlow() throws Exception {
@@ -204,4 +207,97 @@ class OrderTransactionalFlowIntegrationTest extends AdminApiIntegrationSupport {
         ), null);
         assertThat(res2.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
+
+    @Test
+    @DisplayName("BE-30 / BE-31: Expiración de reservas temporales: reversión automática de stock ante falta de pago")
+    void testExpiredReservationStockReversion() throws Exception {
+        int initialStock = jdbc.queryForObject(
+                "SELECT stock FROM public.product_variants WHERE id = ?::uuid",
+                Integer.class,
+                VARIANT_ID
+        );
+
+        // Crear pedido de 6 unidades
+        Map<String, Object> orderPayload = Map.of(
+                "cliente", Map.of(
+                        "nombre", "Cliente Temporal",
+                        "cedula_ruc", "0999999999",
+                        "telefono", "0991234567"
+                ),
+                "metodo_entrega", "pickup",
+                "metodo_pago", "payphone",
+                "items", List.of(Map.of("variante_id", VARIANT_ID, "cantidad", 6))
+        );
+
+        var response = request(HttpMethod.POST, "/api/pedidos", orderPayload, null);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        String orderId = json(response).path("id").asText();
+
+        // Stock físico descontado a (initialStock - 6)
+        int reservedStock = jdbc.queryForObject(
+                "SELECT stock FROM public.product_variants WHERE id = ?::uuid",
+                Integer.class,
+                VARIANT_ID
+        );
+        assertThat(reservedStock).isEqualTo(initialStock - 6);
+
+        // Simular paso del tiempo: expirar la reserva en BD (hace 10 minutos)
+        jdbc.update(
+                "UPDATE public.inventory_reservations SET expires_at = NOW() - INTERVAL '10 minutes' WHERE order_id = ?::uuid",
+                UUID.fromString(orderId)
+        );
+
+        // Disparar proceso de expiración
+        int releasedCount = orderService.releaseExpiredReservations();
+        assertThat(releasedCount).isGreaterThanOrEqualTo(1);
+
+        // Validar que el stock físico volvió exactamente al valor inicial
+        int stockAfterExpiration = jdbc.queryForObject(
+                "SELECT stock FROM public.product_variants WHERE id = ?::uuid",
+                Integer.class,
+                VARIANT_ID
+        );
+        assertThat(stockAfterExpiration).isEqualTo(initialStock);
+
+        // Validar que la orden pasó a cancelada y la reserva a released
+        String orderStatus = jdbc.queryForObject(
+                "SELECT status FROM public.orders WHERE id = ?::uuid",
+                String.class,
+                orderId
+        );
+        assertThat(orderStatus).isEqualTo("cancelled");
+
+        String reservationStatus = jdbc.queryForObject(
+                "SELECT status FROM public.inventory_reservations WHERE order_id = ?::uuid",
+                String.class,
+                orderId
+        );
+        assertThat(reservationStatus).isEqualTo("released");
+    }
+
+    @Test
+    @DisplayName("BE-30 / BE-31: Creación de pedido con método de pago transferencia bancaria")
+    void testBankTransferOrderCreation() throws Exception {
+        Map<String, Object> orderPayload = Map.of(
+                "cliente", Map.of(
+                        "nombre", "Empresa Láctea Asociada",
+                        "cedula_ruc", "1790011223001",
+                        "telefono", "022334455",
+                        "email", "pagos@empresalactea.ec"
+                ),
+                "metodo_entrega", "pickup",
+                "metodo_pago", "transferencia",
+                "items", List.of(Map.of("variante_id", VARIANT_ID, "cantidad", 2))
+        );
+
+        var response = request(HttpMethod.POST, "/api/pedidos", orderPayload, null);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+
+        JsonNode json = json(response);
+        assertThat(json.path("metodo_pago").asText()).isEqualTo("transferencia");
+        assertThat(json.path("estado").asText()).isEqualTo("pending");
+        assertThat(json.path("payphone_url").isNull() || json.path("payphone_url").asText().isBlank()).isTrue();
+    }
 }
+

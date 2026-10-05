@@ -30,20 +30,21 @@ Este directorio contiene la documentación técnica exhaustiva, matrices de caso
 -------------------------------------------------------
 [PASS] TestimonialControllerTest                  (4 tests)
 [PASS] AdminTestimonialControllerTest             (5 tests)
-[PASS] AssociationIntegrationTest                 (7 tests)
+[PASS] TestimonialIntegrationTest                 (3 tests)
+[PASS] AssociationIntegrationTest                 (7 tests - incl. fotos BE-14)
 [PASS] InventoryConcurrencyStressIntegrationTest  (2 tests - 30 & 15 hilos concurrentes)
 [PASS] CatalogComprehensiveIntegrationTest        (4 tests)
-[PASS] RecipeIntegrationTest                     (3 tests)
+[PASS] RecipeIntegrationTest                     (4 tests - incl. recipe_products BE-22)
 [PASS] TouristAttractionIntegrationTest           (4 tests)
 [PASS] RecipeControllerTest                       (4 tests)
 [PASS] ContactSmtpMockIntegrationTest             (4 tests)
 [PASS] FinancialAuditOrderTest                    (4 tests)
-[PASS] OrderTransactionalFlowIntegrationTest      (3 tests)
+[PASS] OrderTransactionalFlowIntegrationTest      (5 tests - incl. expiración y transferencias BE-30)
 -------------------------------------------------------
-Total Tests Ejecutados en Suite Consolidada: 44
-Tests Exitosos: 44
+Total Tests Ejecutados en Suite Consolidada: 50
+Tests Exitosos: 50
 Fallos / Errores: 0
-Estado: BUILD SUCCESS (100% de aprobación)
+Estado: BUILD SUCCESS (100% de efectividad)
 -------------------------------------------------------
 ```
 

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "CONLAC-T - [BE-31] QA Transaccional y Financiero S6",
-    "description": "Colección oficial versionada para el Milestone S6: Flujo Integral de Compra Transaccional, Auditoría Financiera de Centavos/Redondeo, y Simulación de Webhooks (Confirmación y Reversión Automática de Stock).",
+    "description": "Colección oficial versionada para el Milestone S6: Flujo Integral de Compra Transaccional (BE-29), Reserva Temporal y Transferencias (BE-30), Auditoría Financiera de Centavos/Redondeo, y Simulación de Webhooks (BE-28) con confirmación o reversión automática de stock.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -42,10 +42,10 @@
   ],
   "item": [
     {
-      "name": "Creación de Pedidos & Auditoría Financiera",
+      "name": "Creación de Pedidos & Auditoría Financiera (BE-29 / BE-30)",
       "item": [
         {
-          "name": "Crear pedido a domicilio con reserva de stock [Delivery]",
+          "name": "Crear pedido a domicilio con reserva de stock [Delivery - PayPhone]",
           "request": {
             "method": "POST",
             "header": [
@@ -123,6 +123,41 @@
           ]
         },
         {
+          "name": "Crear pedido con Transferencia Bancaria [BE-30]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente\": {\n    \"nombre\": \"Empresa Láctea Mayorista\",\n    \"cedula_ruc\": \"1790011223001\",\n    \"telefono\": \"022334455\",\n    \"email\": \"contabilidad@empresalactea.ec\"\n  },\n  \"metodo_entrega\": \"pickup\",\n  \"metodo_pago\": \"transferencia\",\n  \"items\": [\n    {\n      \"variante_id\": \"{{variant_id}}\",\n      \"cantidad\": 5\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/pedidos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 CREATED', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Método de pago es transferencia y estado pending', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.metodo_pago).to.eql('transferencia');",
+                  "    pm.expect(json.estado).to.eql('pending');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
           "name": "Seguimiento de pedido por número de orden",
           "request": {
             "method": "GET",
@@ -150,7 +185,7 @@
       ]
     },
     {
-      "name": "Webhooks de Pago (PayPhone)",
+      "name": "Webhooks de Pago & Resolución de Stock (BE-28 / BE-31)",
       "item": [
         {
           "name": "Simulación Webhook Aprobado (Confirmar Pago y Consumir Reserva)",
