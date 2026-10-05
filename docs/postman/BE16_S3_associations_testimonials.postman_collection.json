@@ -1,0 +1,310 @@
+{
+  "info": {
+    "name": "CONLAC-T - [BE-16] Colección Postman, Tests Unitarios y QA S3",
+    "description": "Colección oficial versionada para el Milestone S3: Asociaciones y Testimonios. Incluye rutas públicas duales (español/inglés), operaciones administrativas con token Bearer JWT y pruebas automatizadas de códigos de estado y schemas JSON.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "association_id",
+      "value": "a0000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "association_slug",
+      "value": "queseras-pilahuin"
+    },
+    {
+      "key": "testimonial_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Asociaciones (Público)",
+      "item": [
+        {
+          "name": "Listar asociaciones públicas [ES]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/asociaciones"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es un array con elementos', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    pm.expect(json.length).to.be.above(0);",
+                  "    pm.expect(json[0]).to.have.property('id');",
+                  "    pm.expect(json[0]).to.have.property('nombre');",
+                  "    pm.expect(json[0]).to.have.property('slug');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar asociaciones públicas [EN Alias]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/associations"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Alias /api/associations retorna 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Obtener asociación por slug sembrado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/asociaciones/{{association_slug}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Valida estructura y slug', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.slug).to.eql(pm.variables.get('association_slug'));",
+                  "    pm.expect(json).to.have.property('nombre');",
+                  "    pm.expect(json).to.have.property('parroquia');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consulta asociación inexistente retorna 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/asociaciones/asociacion-inexistente-xyz"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 404 NOT FOUND', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Testimonios (Público)",
+      "item": [
+        {
+          "name": "Listar testimonios públicos [ES]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/testimonios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es un array con testimonios publicados', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    if (json.length > 0) {",
+                  "        pm.expect(json[0]).to.have.property('id');",
+                  "        pm.expect(json[0]).to.have.property('nombre_autor');",
+                  "        pm.expect(json[0]).to.have.property('contenido');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar testimonios públicos [EN Alias]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/testimonials"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Alias /api/testimonials retorna 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Testimonios (Admin)",
+      "item": [
+        {
+          "name": "Listar testimonios admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Guarda primer id de testimonio si existe', function () {",
+                  "    var json = pm.response.json();",
+                  "    if (json.length > 0) {",
+                  "        pm.variables.set('testimonial_id', json[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear testimonio admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_autor\": \"Consumidor Satisfecho\",\n  \"rol_autor\": \"Cliente Frecuente\",\n  \"comentario\": \"El queso fresco artesanal tiene un sabor auténtico de páramo.\",\n  \"calificacion\": 5,\n  \"es_publicado\": true,\n  \"asociacion_id\": \"{{association_id}}\"\n}"
+            },
+            "url": "{{base_url}}/api/admin/testimonios"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 CREATED', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.variables.set('testimonial_id', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Alternar publicación de testimonio",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}/publicar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Campo es_publicado está presente', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('es_publicado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar testimonio admin",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 204 NO CONTENT', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

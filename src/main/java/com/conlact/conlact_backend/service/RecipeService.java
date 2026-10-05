@@ -1,143 +1,76 @@
 package com.conlact.conlact_backend.service;
 
-import com.conlact.conlact_backend.dto.recipe.RelatedProductResponse;
 import com.conlact.conlact_backend.dto.recipe.RecipeResponse;
-import com.conlact.conlact_backend.entity.Product;
 import com.conlact.conlact_backend.entity.Recipe;
+import com.conlact.conlact_backend.exception.ResourceNotFoundException;
 import com.conlact.conlact_backend.repository.RecipeRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import com.conlact.conlact_backend.storage.IStorage;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Service
-@RequiredArgsConstructor
 public class RecipeService {
 
     private final RecipeRepository recipeRepository;
+    private final IStorage storage;
+    private final String recipeBucket;
 
+    public RecipeService(RecipeRepository recipeRepository,
+                         IStorage storage,
+                         @Value("${app.supabase.storage.recipe-bucket:recipe-images}") String recipeBucket) {
+        this.recipeRepository = recipeRepository;
+        this.storage = storage;
+        this.recipeBucket = recipeBucket;
+    }
+
+    @Transactional(readOnly = true)
     public List<RecipeResponse> getPublishedRecipes() {
-
-        return recipeRepository.findByIsPublishedTrue()
-                .stream()
-                .map(this::toRecipeResponse)
+        return recipeRepository.findByIsPublishedTrue().stream()
+                .map(this::toResponse)
                 .toList();
     }
 
-    public RecipeResponse getPublishedRecipeById(UUID recipeId) {
-
-        Recipe recipe = recipeRepository.findById(recipeId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Receta no encontrada"
-                ));
+    @Transactional(readOnly = true)
+    public RecipeResponse getRecipeBySlug(String slug) {
+        Recipe recipe = recipeRepository.findBySlug(slug)
+                .orElseThrow(() -> new ResourceNotFoundException("Receta no encontrada con slug: " + slug));
 
         if (!Boolean.TRUE.equals(recipe.getIsPublished())) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Receta no encontrada"
-            );
+            throw new ResourceNotFoundException("Receta no disponible o no publicada");
         }
 
-        return toRecipeResponse(recipe);
+        return toResponse(recipe);
     }
 
-    private RecipeResponse toRecipeResponse(Recipe recipe) {
+    @Transactional(readOnly = true)
+    public RecipeResponse getRecipeById(UUID id) {
+        Recipe recipe = recipeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Receta no encontrada con ID: " + id));
 
-        List<Product> products = recipe.getProducts()
-                .stream()
-                .toList();
-
-        Product mainProduct = products.isEmpty()
-                ? null
-                : products.get(0);
-
-        return RecipeResponse.builder()
-                .id(recipe.getId())
-                .title(recipe.getTitle())
-                .slug(recipe.getSlug())
-                .cheeseType(
-                        mainProduct != null
-                                ? mainProduct.getCheeseType()
-                                : null
-                )
-                .preparationTime(recipe.getPrepMinutes())
-                .servings(recipe.getServings())
-                .productSlug(
-                        mainProduct != null
-                                ? mainProduct.getSlug()
-                                : null
-                )
-                .imageUrl(buildImageUrl(recipe.getImageStoragePath()))
-                .pasos(toSteps(recipe.getSteps()))
-                .ingredientes(toIngredients(recipe.getIngredients()))
-                .relatedProducts(
-                        toRelatedProducts(recipe.getId())
-                )
-                .build();
-    }
-
-    private List<String> toIngredients(
-            List<Map<String, Object>> ingredients
-    ) {
-
-        return ingredients.stream()
-                .map(ingredient -> {
-
-                    String quantity =
-                            (String) ingredient.get("quantity");
-
-                    String item =
-                            (String) ingredient.get("item");
-
-                    if (quantity == null || quantity.isBlank()) {
-                        return item;
-                    }
-
-                    return quantity + " " + item;
-                })
-                .toList();
-    }
-
-    private List<String> toSteps(
-            List<Map<String, Object>> steps
-    ) {
-
-        return steps.stream()
-                .map(step ->
-                        (String) step.get("instruction")
-                )
-                .toList();
-    }
-
-    private List<RelatedProductResponse> toRelatedProducts(
-            UUID recipeId
-    ) {
-
-        return recipeRepository
-                .findRelatedProductsByRecipeId(recipeId)
-                .stream()
-                .map(row -> RelatedProductResponse.builder()
-                        .productId((UUID) row[0])
-                        .nombre((String) row[1])
-                        .precio((BigDecimal) row[2])
-                        .recommended((Boolean) row[3])
-                        .build()
-                )
-                .toList();
-    }
-
-    private String buildImageUrl(String storagePath) {
-
-        if (storagePath == null || storagePath.isBlank()) {
-            return null;
+        if (!Boolean.TRUE.equals(recipe.getIsPublished())) {
+            throw new ResourceNotFoundException("Receta no disponible o no publicada");
         }
 
-        return storagePath;
+        return toResponse(recipe);
+    }
+
+    private RecipeResponse toResponse(Recipe recipe) {
+        String publicImageUrl = null;
+        if (recipe.getImageStoragePath() != null && !recipe.getImageStoragePath().isBlank()) {
+            if (recipe.getImageStoragePath().startsWith("http://") || recipe.getImageStoragePath().startsWith("https://")
+                    || recipe.getImageStoragePath().startsWith("/")) {
+                publicImageUrl = recipe.getImageStoragePath();
+            } else {
+                publicImageUrl = storage.getPublicUrl(recipeBucket, recipe.getImageStoragePath());
+            }
+        }
+
+        return RecipeResponse.fromEntity(recipe, publicImageUrl);
     }
 }

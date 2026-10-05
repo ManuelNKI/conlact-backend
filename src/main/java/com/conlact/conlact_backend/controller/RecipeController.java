@@ -24,13 +24,13 @@ public class RecipeController {
         );
     }
 
-    @GetMapping("/{recipeId}")
-    public ResponseEntity<RecipeResponse> getRecipe(
-            @PathVariable UUID recipeId
-    ) {
-
-        return ResponseEntity.ok(
-                recipeService.getPublishedRecipeById(recipeId)
-        );
+    @GetMapping("/{identifier}")
+    public ResponseEntity<RecipeResponse> getRecipeByIdentifier(@PathVariable String identifier) {
+        try {
+            UUID id = UUID.fromString(identifier);
+            return ResponseEntity.ok(recipeService.getRecipeById(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.ok(recipeService.getRecipeBySlug(identifier));
+        }
     }
 }

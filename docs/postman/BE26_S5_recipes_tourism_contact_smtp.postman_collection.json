@@ -1,0 +1,398 @@
+{
+  "info": {
+    "name": "CONLAC-T - [BE-26] Pruebas SMTP, Turismo y QA S5",
+    "description": "Colección oficial versionada para el Milestone S5: Recetas Tradicionales, Atractivos Turísticos y Formulario de Contacto Institucional (con envío SMTP mockeado para evitar emails reales en pruebas).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "recipe_slug",
+      "value": "locro-de-papa-con-queso-fresco-de-altura"
+    },
+    {
+      "key": "attraction_id",
+      "value": "00000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "association_id",
+      "value": "a0000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "message_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Recetas Tradicionales",
+      "item": [
+        {
+          "name": "Listar recetas publicadas [ES]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/recetas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna listado de recetas con ingredientes y pasos', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    pm.expect(json.length).to.be.above(0);",
+                  "    pm.expect(json[0]).to.have.property('titulo');",
+                  "    pm.expect(json[0]).to.have.property('ingredientes');",
+                  "    pm.expect(json[0]).to.have.property('pasos');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar recetas publicadas [EN Alias]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/recipes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Alias /api/recipes retorna 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de receta por slug sembrado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/recetas/{{recipe_slug}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Valida contenido y porciones', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.slug).to.eql(pm.variables.get('recipe_slug'));",
+                  "    pm.expect(json).to.have.property('porciones');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consulta receta inexistente retorna 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/recetas/receta-inexistente-xyz"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 404 NOT FOUND', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Atractivos Turísticos",
+      "item": [
+        {
+          "name": "Listar atractivos turísticos [ES]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/turismo"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna coordenadas y descripción del sendero/quesería', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    pm.expect(json.length).to.be.above(0);",
+                  "    pm.expect(json[0]).to.have.property('lat');",
+                  "    pm.expect(json[0]).to.have.property('lng');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar atractivos turísticos [EN Alias]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/tourism"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Alias /api/tourism retorna 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtrar atractivos por asociación",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/turismo?asociacion_id={{association_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de atractivo por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/turismo/{{attraction_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Valida nombre y condiciones de acceso', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.eql(pm.variables.get('attraction_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Contacto & Notificaciones SMTP Mock",
+      "item": [
+        {
+          "name": "Enviar mensaje de contacto [ES]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Distribuidora Láctea del Austro\",\n  \"email\": \"ventas@austrolact.ec\",\n  \"telefono\": \"+593987654321\",\n  \"asunto\": \"Cotización de pedido mayorista para Cuenca\",\n  \"mensaje\": \"Estimados productores, deseamos conocer condiciones comerciales para entrega quincenal de quesos artesanal e hilado.\",\n  \"privacy_accepted\": true\n}"
+            },
+            "url": "{{base_url}}/api/contacto"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 CREATED', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Retorna estado received y UUID', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('received');",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.variables.set('message_id', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enviar mensaje de contacto [EN Alias]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Eco Tourism Agency\",\n  \"email\": \"tours@ecotravel.com\",\n  \"telefono\": \"+12025550199\",\n  \"asunto\": \"Tour group visit inquiry\",\n  \"mensaje\": \"We are organizing a tour to Chimborazo and would like to include the cheese route in Mulanleo.\",\n  \"privacy_accepted\": true\n}"
+            },
+            "url": "{{base_url}}/api/contact"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Alias /api/contact retorna 201 CREATED', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validación 400 - Correo inválido y campos requeridos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\",\n  \"email\": \"correo-invalido-sin-arroba\",\n  \"asunto\": \"\",\n  \"mensaje\": \"\"\n}"
+            },
+            "url": "{{base_url}}/api/contacto"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 400 BAD REQUEST', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar mensajes en administración",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/contacto"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna lista de mensajes', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resolver mensaje de contacto admin",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{base_url}}/api/admin/contacto/{{message_id}}/resolver"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Mensaje marcado como resuelto', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.is_resolved).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
