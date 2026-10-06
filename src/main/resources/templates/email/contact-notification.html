@@ -6,6 +6,7 @@
 <p><strong>Nombre:</strong> <span th:text="${contactName}">Contacto</span></p>
 <p><strong>Correo:</strong> <span th:text="${contactEmail}">Correo</span></p>
 <p th:if="${phone != null}"><strong>Teléfono:</strong> <span th:text="${phone}">Teléfono</span></p>
+<p th:if="${contactSubject != null}"><strong>Asunto:</strong> <span th:text="${contactSubject}">Asunto</span></p>
 <p style="white-space:pre-line;" th:text="${message}">Mensaje</p>
 <hr><p style="font-size:12px;">CONLAC-T · Pilahuín</p>
 </body></html>

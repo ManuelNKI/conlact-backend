@@ -26,7 +26,7 @@ El executor tiene 2 hilos base, máximo 4 y cola de 100 tareas. Si se satura rec
 | Enum | Uso | Variables obligatorias | Opcionales |
 | --- | --- | --- | --- |
 | `NOTIFICATION` | Aviso general | `title`, `message` | `recipientName`, `actionUrl`, `actionLabel` |
-| `CONTACT_NOTIFICATION` | Contacto al administrador | `contactName`, `contactEmail`, `message` | `phone` |
+| `CONTACT_NOTIFICATION` | Contacto al administrador | `contactName`, `contactEmail`, `message` | `phone`, `contactSubject` |
 | `ORDER_RECEIVED` | Pedido recibido al comprador | `customerName`, `orderNumber`, `total` | `actionUrl` |
 | `ORDER_STATUS` | Pago verificado o despacho | `customerName`, `orderNumber`, `status` | `message`, `actionUrl` |
 
@@ -53,7 +53,13 @@ SMTP_SSL_ENABLED=false
 
 Para SMTP con TLS implícito, usar el puerto indicado por el proveedor (habitualmente 465), `SMTP_SSL_ENABLED=true` y `SMTP_STARTTLS_ENABLED=false`. Para un servidor local sin autenticación, usar sus datos y dejar ambas opciones TLS y `SMTP_AUTH` en false. No combinar TLS implícito con STARTTLS. Los timeouts de conexión, lectura y escritura son 5 segundos; habilitar STARTTLS también lo exige.
 
-El remitente debe estar permitido por el proveedor. `.env` está ignorado por Git; no incluir credenciales en código, plantillas, Postman ni commits. Este módulo no envía correos automáticamente al crear testimonios. Su integración en BE-25 y los flujos de pedidos corresponde a esos servicios.
+El remitente debe estar permitido por el proveedor. `.env` está ignorado por Git; no incluir credenciales en código, plantillas, Postman ni commits. Este módulo no envía correos automáticamente al crear testimonios.
+
+## Integración de contacto tras unir develop
+
+BE-25 invoca `IEmailService.sendContactNotificationToAdmin` después de confirmar la transacción que guarda el contacto. La implementación usa `mailTaskExecutor`, la plantilla `CONTACT_NOTIFICATION` y JavaMailSender real. Una copia del mensaje evita compartir la entidad administrada por JPA con el hilo de correo. El asunto SMTP es fijo; el asunto del formulario se muestra escapado dentro del HTML.
+
+El destinatario se configura con `MAIL_ADMIN_RECIPIENT`; si se omite, se usa `MAIL_FROM`. La cuenta Gmail ya configurada puede recibir estas notificaciones sin agregar otra variable. Con correo deshabilitado se omite la notificación, sin simular una entrega exitosa. Los fallos SMTP se registran por ID/tipo de error; un rechazo al encolar tampoco invalida el contacto guardado. Los flujos de pedidos todavía deben invocar el servicio desde su integración correspondiente.
 
 ## Verificación
 
@@ -62,5 +68,7 @@ Las pruebas usan el proxy real de `@Async`, el mismo motor Spring/Thymeleaf del 
 El 6 de octubre de 2026 pasó la suite local completa: **185 pruebas, 0 fallos, 0 errores**, con JDK 25.0.4 y PostgreSQL 16 de Testcontainers. El servicio de correo aporta 9 casos, incluidos los 4 de renderizado parametrizado. Se excluyó únicamente `SupabaseLiveConfigurationTest`, que necesita credenciales reales y escribe en Supabase remoto.
 
 También se comprobó el arranque local de Spring en el puerto 8080 con la configuración SMTP deshabilitada por defecto. Las pruebas de entrega usan el servidor simulado; la entrega real debe verificarse después de configurar el proveedor.
+
+La integración de `develop` del 6 de octubre pasó **292 pruebas, 0 fallos, 0 errores**. Se conservaron los casos de ambas ramas y se adaptaron los contratos de las pruebas nuevas a los campos de moderación. Las integraciones fuerzan `app.mail.enabled=false` mediante propiedades dinámicas, incluso si `.env` habilita Gmail; las pruebas de correo usan JavaMailSender simulado. Se excluyó nuevamente `SupabaseLiveConfigurationTest`.
 
 Referencias: [JavaMailSender y timeouts](https://docs.spring.io/spring-boot/4.1-SNAPSHOT/reference/io/email.html), [ejecución asíncrona](https://docs.spring.io/spring-framework/reference/integration/scheduling.html), [Thymeleaf y escape de contenido](https://www.thymeleaf.org/doc/tutorials/3.1/usingthymeleaf.html).

@@ -2,6 +2,7 @@ package com.conlact.conlact_backend.service;
 
 import com.conlact.conlact_backend.config.EmailAsyncConfig;
 import com.conlact.conlact_backend.email.*;
+import com.conlact.conlact_backend.entity.ContactMessage;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,11 +57,11 @@ class EmailNotificationServiceTest {
         }
 
         @Bean @Primary EmailNotificationService emails(JavaMailSender sender, TemplateEngine templates) {
-            return new EmailNotificationService(sender, templates, true, "no-reply@example.com", "CONLAC-T");
+            return new EmailNotificationService(sender, templates, true, "no-reply@example.com", "CONLAC-T", "admin@example.com");
         }
 
         @Bean EmailNotificationService disabledEmails(JavaMailSender sender, TemplateEngine templates) {
-            return new EmailNotificationService(sender, templates, false, "no-reply@example.com", "CONLAC-T");
+            return new EmailNotificationService(sender, templates, false, "no-reply@example.com", "CONLAC-T", "admin@example.com");
         }
     }
 
@@ -153,6 +154,36 @@ class EmailNotificationServiceTest {
         assertThatThrownBy(() -> notification(Map.of("title", "Aviso"))).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> notification(Map.of("title", "Aviso", "message", "Mensaje", "actionUrl", "javascript:alert(1)")))
                 .isInstanceOf(IllegalArgumentException.class);
+        verify(sender, never()).send(any(MimeMessage.class));
+    }
+
+    @Test
+    @DisplayName("Correo: Contacto usa el buzón administrativo, HTML escapado y asunto estable")
+    void shouldSendContactThroughRealTemplateService() throws Exception {
+        CountDownLatch delivered = new CountDownLatch(1);
+        AtomicReference<MimeMessage> sent = new AtomicReference<>();
+        doAnswer(invocation -> {
+            sent.set(invocation.getArgument(0));
+            delivered.countDown();
+            return null;
+        }).when(sender).send(any(MimeMessage.class));
+        emails.sendContactNotificationToAdmin(ContactMessage.builder()
+                .name("María").email("cliente@example.com").phone("0991234567")
+                .subject("<script>" + "x".repeat(193)).message("Consulta sobre Pilahuín").build());
+        assertThat(delivered.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(sent.get().getAllRecipients()[0].toString()).isEqualTo("admin@example.com");
+        assertThat(sent.get().getSubject()).isEqualTo("[CONLAC-T] Nuevo mensaje de contacto");
+        assertThat(sent.get().getContent().toString()).contains("María", "0991234567", "&lt;script&gt;")
+                .doesNotContain("<script>");
+    }
+
+    @Test
+    @DisplayName("Correo: Contactos con envío deshabilitado no acceden al servidor SMTP")
+    void shouldSkipContactNotificationWhenDisabled() throws Exception {
+        disabledEmails.sendContactNotificationToAdmin(ContactMessage.builder().name("Contacto").build());
+        // La siguiente tarea en el mismo executor asegura que el procesamiento asíncrono funciona.
+        assertThatThrownBy(() -> disabledEmails.sendEmail(notification(Map.of("title", "Aviso", "message", "Mensaje")))
+                .get(3, TimeUnit.SECONDS)).hasRootCauseInstanceOf(EmailDeliveryException.class);
         verify(sender, never()).send(any(MimeMessage.class));
     }
 }

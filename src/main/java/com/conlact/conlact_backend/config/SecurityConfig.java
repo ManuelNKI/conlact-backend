@@ -46,13 +46,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/categories/**", "/api/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recipes/**", "/api/recetas/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/recipes/**", "/api/recipes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tourism/**", "/api/turismo/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/testimonials/**", "/api/testimonios/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shipping-zones/**", "/api/zonas-envio/**").permitAll()
 
                         // Checkout y Formulario de Contacto (Públicos para clientes finales)
                         .requestMatchers(HttpMethod.POST, "/api/orders", "/api/pedidos").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/orders/track/**", "/api/pedidos/track/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/orders/**", "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/contact", "/api/contacto").permitAll()
 
                         // Webhooks de pasarelas de pago (PayPhone u otros)

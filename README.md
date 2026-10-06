@@ -127,16 +127,46 @@ El servidor iniciará en el puerto **`8080`**:
 
 ## 🧪 Ejecución de Pruebas Automatizadas
 
-El proyecto cuenta con suites de pruebas unitarias y de integración:
+Requiere **JDK 25** y **Docker Desktop** activo (Testcontainers levanta PostgreSQL automáticamente).
 
-```bash
-# Ejecutar todas las pruebas unitarias y de configuración
+### Suite Completa (todos los tests)
+```powershell
+# Windows
+.\mvnw.cmd test
+
+# Linux / macOS
 ./mvnw test
+```
 
-# Ejecutar una prueba específica
+### Pruebas Unitarias y de Infraestructura Específicas
+Para ejecutar pruebas individuales de seguridad, storage o integración en vivo:
+```powershell
+# Pruebas unitarias de tokens JWT (claves ECC P-256 y HMAC fallback)
 ./mvnw test "-Dtest=JwtTokenProviderTest"
+
+# Pruebas unitarias de Supabase Storage con mocks (upload, download, signed URLs, delete)
 ./mvnw test "-Dtest=SupabaseStorageServiceTest"
+
+# Pruebas de integración en vivo contra Supabase (requiere SUPABASE_URL y SERVICE_ROLE_KEY en .env)
 ./mvnw test "-Dtest=SupabaseLiveConfigurationTest"
+```
+
+### Por Milestone Específico (QA)
+
+| Ticket | Área | Comando |
+|--------|------|---------|
+| `[BE-16]` | Asociaciones, Testimonios y Fotos | `.\mvnw.cmd test "-Dtest=TestimonialControllerTest,AdminTestimonialControllerTest,TestimonialIntegrationTest,AssociationIntegrationTest"` |
+| `[BE-21]` | Estrés de Inventario y Catálogo | `.\mvnw.cmd test "-Dtest=InventoryConcurrencyStressIntegrationTest,CatalogComprehensiveIntegrationTest"` |
+| `[BE-26]` | Recetas, Turismo y Contacto (SMTP Mock) | `.\mvnw.cmd test "-Dtest=RecipeIntegrationTest,TouristAttractionIntegrationTest,ContactSmtpMockIntegrationTest"` |
+| `[BE-31]` | Flujo Transaccional, Webhooks y Auditoría Financiera | `.\mvnw.cmd test "-Dtest=FinancialAuditOrderTest,OrderTransactionalFlowIntegrationTest"` |
+
+### Colecciones Postman con Newman CLI
+Las colecciones están en `docs/postman/`. Ejecutar con el servidor levantado en `:8080`:
+```bash
+npx newman run docs/postman/BE16_S3_associations_testimonials.postman_collection.json --env-var "base_url=http://localhost:8080"
+npx newman run docs/postman/BE21_S4_inventory_stress_catalog.postman_collection.json       --env-var "base_url=http://localhost:8080"
+npx newman run docs/postman/BE26_S5_recipes_tourism_contact_smtp.postman_collection.json   --env-var "base_url=http://localhost:8080"
+npx newman run docs/postman/BE31_S6_transactional_financial_checkout.postman_collection.json --env-var "base_url=http://localhost:8080"
 ```
 
 ---
@@ -197,3 +227,5 @@ La API de testimonios también incluye aprobación, archivo, destacados opcional
 ## Correo SMTP asíncrono (BE-24)
 
 `EmailNotificationService` usa JavaMailSender y plantillas HTML Thymeleaf para contacto y pedidos. El envío corre mediante `@Async` y devuelve un `CompletableFuture` que permite observar fallos. Por defecto está deshabilitado hasta configurar SMTP. Ver [uso, plantillas y configuración](docs/BE24_CORREO.md).
+
+El formulario de contacto ya invoca el servicio después de guardar el mensaje. Sus notificaciones se dirigen a `MAIL_ADMIN_RECIPIENT`, o a `MAIL_FROM` cuando no se configura un destinatario aparte.
