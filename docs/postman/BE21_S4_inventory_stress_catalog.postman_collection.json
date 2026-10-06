@@ -1,0 +1,278 @@
+{
+  "info": {
+    "name": "CONLAC-T - [BE-21] Tests de Estrés de Inventario & QA S4",
+    "description": "Colección oficial versionada para el Milestone S4: Catálogo de Productos y Control de Inventario Concurrente. Incluye validaciones de stock, rutas de búsqueda y filtros, y operaciones administrativas de descuento y reposición de stock.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "product_slug",
+      "value": "queso-fresco-artesanal-el-lindero"
+    },
+    {
+      "key": "variant_id",
+      "value": "ba000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "variant_version",
+      "value": "0"
+    }
+  ],
+  "item": [
+    {
+      "name": "Catálogo Público",
+      "item": [
+        {
+          "name": "Listar productos activos [ES]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/productos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna catálogo con variantes', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    pm.expect(json.length).to.be.above(0);",
+                  "    pm.expect(json[0]).to.have.property('slug');",
+                  "    pm.expect(json[0]).to.have.property('variantes');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar productos activos [EN Alias]",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/products"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Alias /api/products retorna 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Detalle de producto por slug sembrado",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/productos/{{product_slug}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Valida estructura del producto y variantes', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.slug).to.eql(pm.variables.get('product_slug'));",
+                  "    pm.expect(json.variantes).to.be.an('array');",
+                  "    if (json.variantes.length > 0) {",
+                  "        pm.expect(json.variantes[0]).to.have.property('stock');",
+                  "        pm.expect(json.variantes[0]).to.have.property('sku');",
+                  "        pm.variables.set('variant_id', json.variantes[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filtro de productos disponibles (stock > 0)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/productos?disponible=true"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Todos los productos tienen disponibilidad', function () {",
+                  "    var json = pm.response.json();",
+                  "    json.forEach(function(p) {",
+                  "        pm.expect(p.tiene_stock).to.eql(true);",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Búsqueda textual de productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/productos?busqueda=queso"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Resultados contienen queso en nombre o descripción', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Inventario & Concurrencia (Admin)",
+      "item": [
+        {
+          "name": "Consultar variantes bajo stock",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/inventario/bajo-stock"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna listado de alertas de inventario', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Descontar stock con control de versión optimista",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 1,\n  \"motivo\": \"Venta directa en feria\",\n  \"version_esperada\": {{variant_version}}\n}"
+            },
+            "url": "{{base_url}}/api/admin/inventario/variantes/{{variant_id}}/descontar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Retorna stock actualizado y nueva versión', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('stock_actual');",
+                  "    pm.expect(json).to.have.property('version');",
+                  "    pm.variables.set('variant_version', json.version);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reponer stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cantidad\": 10,\n  \"motivo\": \"Reabastecimiento desde planta quesera\"\n}"
+            },
+            "url": "{{base_url}}/api/admin/inventario/variantes/{{variant_id}}/reponer"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Stock se incrementa', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('stock_actual');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

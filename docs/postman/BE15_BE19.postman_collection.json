@@ -1,0 +1,689 @@
+{
+  "info": {
+    "name": "CONLAC-T - BE-15 y BE-19 - David Barragán",
+    "description": "Administración requiere admin_token de Supabase y perfil ADMIN activo. Usar en desarrollo. Crear registros antes de ejecutar solicitudes que usan sus IDs. Descuento/reposición aplican cada petición válida. No incluye credenciales.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "association_id",
+      "value": "a0000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "category_id",
+      "value": "c0000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "testimonial_id",
+      "value": ""
+    },
+    {
+      "key": "product_id",
+      "value": ""
+    },
+    {
+      "key": "variant_id",
+      "value": ""
+    },
+    {
+      "key": "variant_version",
+      "value": "0"
+    }
+  ],
+  "item": [
+    {
+      "name": "BE-15 - Testimonios",
+      "item": [
+        {
+          "name": "Listar testimonios públicos ES",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/testimonios",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar testimonios públicos EN",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/testimonials",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear testimonio autorizado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/testimonios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autor_nombre\": \"Mercedes Caisabanda\",\n  \"autor_tipo\": \"Maestra Quesera\",\n  \"frase\": \"Conservamos nuestra tradición quesera.\",\n  \"is_authorized\": true,\n  \"is_published\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"testimonial_id\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar todos los testimonios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonials"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar testimonio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar testimonio",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/testimonials/{{testimonial_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"autor_nombre\": \"Mercedes Caisabanda\",\n  \"autor_tipo\": \"Maestra Quesera\",\n  \"frase\": \"Trabajo comunitario en Pilahuín.\",\n  \"is_authorized\": true,\n  \"is_published\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publicar testimonio explícitamente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}/publicar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_published\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ocultar testimonio explícitamente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/testimonials/{{testimonial_id}}/publish",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_published\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Eliminar testimonio de prueba",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BE-19 - Productos",
+      "item": [
+        {
+          "name": "Crear producto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/productos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asociacion_id\": \"{{association_id}}\",\n  \"categoria_id\": \"{{category_id}}\",\n  \"nombre\": \"Queso BE19 de prueba\",\n  \"tipo_queso\": \"Fresco\",\n  \"descripcion_corta\": \"Registro de prueba de desarrollo\",\n  \"status\": \"published\",\n  \"is_featured\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"product_id\", pm.response.json().id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar productos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/products"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar producto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/productos/{{product_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/products/{{product_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"asociacion_id\": \"{{association_id}}\",\n  \"categoria_id\": \"{{category_id}}\",\n  \"nombre\": \"Queso BE19 de prueba\",\n  \"tipo_queso\": \"Fresco\",\n  \"descripcion_corta\": \"Registro de prueba de desarrollo\",\n  \"status\": \"published\",\n  \"is_featured\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BE-19 - Variantes y stock",
+      "item": [
+        {
+          "name": "Crear variante",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/productos/{{product_id}}/variantes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"BE19-{{$timestamp}}\",\n  \"presentation_name\": \"Bloque 500 g\",\n  \"weight_grams\": 500,\n  \"price\": 3.25,\n  \"stock\": 20,\n  \"low_stock_threshold\": 5,\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set(\"variant_id\", pm.response.json().id); }",
+                  "if ([200, 201].includes(pm.response.code)) { pm.collectionVariables.set(\"variant_version\", pm.response.json().version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar variante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/variants/{{variant_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if ([200, 201].includes(pm.response.code)) { pm.collectionVariables.set(\"variant_version\", pm.response.json().version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar variantes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/admin/products/{{product_id}}/variants"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Actualizar metadatos de variante",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/variantes/{{variant_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"presentation_name\": \"Bloque empacado 500 g\",\n  \"price\": 3.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if ([200, 201].includes(pm.response.code)) { pm.collectionVariables.set(\"variant_version\", pm.response.json().version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Descontar stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/variantes/{{variant_id}}/stock/deduct",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 3,\n  \"reason\": \"venta_mostrador\",\n  \"version\": {{variant_version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if ([200, 201].includes(pm.response.code)) { pm.collectionVariables.set(\"variant_version\", pm.response.json().version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reabastecer stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/variants/{{variant_id}}/stock/replenish",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 10,\n  \"reason\": \"reabastecimiento\",\n  \"version\": {{variant_version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if ([200, 201].includes(pm.response.code)) { pm.collectionVariables.set(\"variant_version\", pm.response.json().version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ajustar stock con control de versión",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/variantes/{{variant_id}}/stock/set",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stock\": 25,\n  \"reason\": \"conteo_fisico\",\n  \"version\": {{variant_version}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if ([200, 201].includes(pm.response.code)) { pm.collectionVariables.set(\"variant_version\", pm.response.json().version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Desactivar variante",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/admin/variants/{{variant_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reactivar variante",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/variantes/{{variant_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "if ([200, 201].includes(pm.response.code)) { pm.collectionVariables.set(\"variant_version\", pm.response.json().version); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ocultar producto de prueba",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{base_url}}/api/admin/productos/{{product_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 204\", function () { pm.response.to.have.status(204); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
