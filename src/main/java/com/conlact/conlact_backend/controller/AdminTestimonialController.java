@@ -3,6 +3,7 @@ package com.conlact.conlact_backend.controller;
 import com.conlact.conlact_backend.dto.testimonial.AdminTestimonialResponse;
 import com.conlact.conlact_backend.dto.testimonial.TestimonialPublicationRequest;
 import com.conlact.conlact_backend.dto.testimonial.TestimonialRequest;
+import com.conlact.conlact_backend.dto.testimonial.TestimonialModerationRequest;
 import com.conlact.conlact_backend.service.TestimonialService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,21 @@ public class AdminTestimonialController {
     public ResponseEntity<Void> deleteTestimonial(@PathVariable UUID id) {
         testimonialService.deleteTestimonial(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping({"/{id}/aprobar", "/{id}/approve"})
+    public ResponseEntity<AdminTestimonialResponse> approveTestimonial(@PathVariable UUID id) {
+        return ResponseEntity.ok(testimonialService.approveTestimonial(id));
+    }
+
+    @PatchMapping({"/{id}/archivar", "/{id}/archive"})
+    public ResponseEntity<AdminTestimonialResponse> archiveTestimonial(@PathVariable UUID id) {
+        return ResponseEntity.ok(testimonialService.archiveTestimonial(id));
+    }
+
+    @PatchMapping({"/{id}/moderar", "/{id}/moderate"})
+    public ResponseEntity<AdminTestimonialResponse> moderateTestimonial(
+            @PathVariable UUID id, @RequestBody TestimonialModerationRequest request) {
+        return ResponseEntity.ok(testimonialService.moderateTestimonial(id, request));
     }
 }

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Pedido recibido · CONLAC-T</title></head>
+<body style="font-family:Arial,sans-serif;color:#263c30;line-height:1.6;">
+<h1 style="font-size:24px;">Recibimos tu pedido</h1>
+<p th:text="|Hola, ${customerName}.|">Hola.</p>
+<p>Registramos el pedido <strong th:text="${orderNumber}">Número</strong>.</p>
+<p><strong>Total: USD <span th:text="${total}">0.00</span></strong></p>
+<p>El registro del pedido está pendiente de las verificaciones de pago correspondientes.</p>
+<p th:if="${actionUrl != null}"><a th:href="${actionUrl}">Consultar pedido</a></p>
+<hr><p style="font-size:12px;">Gracias por apoyar a nuestros productores. CONLAC-T · Pilahuín</p>
+</body></html>

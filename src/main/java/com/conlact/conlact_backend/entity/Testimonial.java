@@ -31,6 +31,24 @@ public class Testimonial {
     @Column(name = "quote", columnDefinition = "text", nullable = false)
     private String quote;
 
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Column(name = "rating")
+    private Integer rating;
+
+    @Column(name = "is_approved", nullable = false)
+    @Builder.Default
+    private Boolean isApproved = false;
+
+    @Column(name = "is_featured", nullable = false)
+    @Builder.Default
+    private Boolean isFeatured = false;
+
+    @Column(name = "is_archived", nullable = false)
+    @Builder.Default
+    private Boolean isArchived = false;
+
     @Column(name = "is_authorized", nullable = false)
     @Builder.Default
     private Boolean isAuthorized = false;

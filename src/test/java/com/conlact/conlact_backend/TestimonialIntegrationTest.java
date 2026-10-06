@@ -23,7 +23,7 @@ class TestimonialIntegrationTest extends AdminApiIntegrationSupport {
         UUID hidden = UUID.randomUUID();
         UUID draft = UUID.randomUUID();
         for (var row : new Object[][]{{visible, true, true}, {unauthorized, false, true}, {hidden, true, false}, {draft, false, false}}) {
-            jdbc.update("INSERT INTO testimonials(id, author_name, quote, is_authorized, is_published) VALUES (?, 'Productora', 'Frase autorizada', ?, ?)", row);
+            jdbc.update("INSERT INTO testimonials(id, author_name, quote, is_authorized, is_published, is_approved) VALUES (?, 'Productora', 'Frase autorizada', ?, ?, true)", row);
         }
         for (String path : new String[]{"/api/testimonios", "/api/testimonials"}) {
             var response = request(HttpMethod.GET, path, null, null);
@@ -106,6 +106,69 @@ class TestimonialIntegrationTest extends AdminApiIntegrationSupport {
         jdbc.update("INSERT INTO profiles(id, full_name, is_active) VALUES (?, 'Inactivo', false)", inactive);
         for (String invalidToken : new String[]{"invalid-token", tokenFor(UUID.randomUUID()), tokenFor(inactive)}) {
             assertThat(request(HttpMethod.POST, "/api/admin/testimonios", content(), invalidToken).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @Test
+    @DisplayName("Testimonios: Aprobación, destacado, archivo y restauración conservan consentimiento y contenido")
+    void shouldCompleteModerationLifecycle() throws Exception {
+        var created = request(HttpMethod.POST, "/api/admin/testimonios", Map.of("autor", "Cliente de Pilahuín",
+                "rol", "Cliente", "comentario", "Excelente queso", "avatar", "https://example.com/avatar",
+                "rating", 5, "is_authorized", true), token);
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        String id = json(created).path("id").asText();
+        assertThat(json(created).path("is_approved").asBoolean()).isFalse();
+        assertThat(json(request(HttpMethod.GET, "/api/testimonios", null, null)).toString()).doesNotContain(id);
+        var approved = request(HttpMethod.PATCH, "/api/admin/testimonials/" + id + "/approve", null, token);
+        assertThat(approved.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(json(approved).path("is_approved").asBoolean()).isTrue();
+        var publicList = json(request(HttpMethod.GET, "/api/testimonios", null, null));
+        assertThat(publicList.toString()).contains(id, "https://example.com/avatar", "Excelente queso");
+        assertThat(json(request(HttpMethod.GET, "/api/testimonios?destacados=true", null, null)).toString()).doesNotContain(id);
+        assertThat(request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/moderar",
+                Map.of("is_featured", true), token).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(json(request(HttpMethod.GET, "/api/testimonials?destacados=true", null, null)).toString()).contains(id);
+        var archived = request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/archivar", null, token);
+        assertThat(json(archived).path("is_archived").asBoolean()).isTrue();
+        assertThat(json(archived).path("is_published").asBoolean()).isFalse();
+        assertThat(json(archived).path("is_featured").asBoolean()).isFalse();
+        assertThat(json(request(HttpMethod.GET, "/api/testimonios", null, null)).toString()).doesNotContain(id);
+        assertThat(request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/aprobar", null, token).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(request(HttpMethod.PATCH, "/api/admin/testimonials/" + id + "/moderate",
+                Map.of("is_archived", false), token).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/aprobar", null, token).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/moderar",
+                Map.of("is_approved", false), token).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(json(request(HttpMethod.GET, "/api/testimonios", null, null)).toString()).doesNotContain(id);
+    }
+
+    @Test
+    @DisplayName("Testimonios: El filtro público excluye pendientes y archivados aunque existan flags inconsistentes")
+    void shouldFilterModerationStatesInDatabase() throws Exception {
+        UUID visible = UUID.randomUUID();
+        UUID pending = UUID.randomUUID();
+        UUID archived = UUID.randomUUID();
+        for (var row : new Object[][]{{visible, true, false}, {pending, false, false}, {archived, true, true}}) {
+            jdbc.update("INSERT INTO testimonials(id, author_name, quote, is_authorized, is_published, is_approved, is_archived) VALUES (?, 'Aliado', 'Frase', true, true, ?, ?)", row);
+        }
+        var body = json(request(HttpMethod.GET, "/api/testimonios", null, null)).toString();
+        assertThat(body).contains(visible.toString()).doesNotContain(pending.toString(), archived.toString());
+    }
+
+    @Test
+    @DisplayName("Testimonios: Valida calificación, avatar, moderación y permisos en las nuevas rutas")
+    void shouldValidateProfileAndModerationRequests() throws Exception {
+        for (var extra : new Map[]{Map.of("calificacion", 0), Map.of("calificacion", 6), Map.of("calificacion", 1.5),
+                Map.of("avatar_url", "javascript:alert(1)"), Map.of("is_authorized", true, "is_published", true, "is_approved", false)}) {
+            var body = new java.util.HashMap<String, Object>(content());
+            body.putAll(extra);
+            assertThat(request(HttpMethod.POST, "/api/admin/testimonios", body, token).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+        String id = json(request(HttpMethod.POST, "/api/admin/testimonios", content(), token)).path("id").asText();
+        assertThat(request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/moderar", Map.of(), token).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/aprobar", null, token).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        for (String action : new String[]{"aprobar", "archivar", "moderar"}) {
+            assertThat(request(HttpMethod.PATCH, "/api/admin/testimonios/" + id + "/" + action, Map.of(), null).getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         }
     }
 }

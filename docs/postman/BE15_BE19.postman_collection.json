@@ -109,7 +109,7 @@
             "url": "{{base_url}}/api/admin/testimonios",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"autor_nombre\": \"Mercedes Caisabanda\",\n  \"autor_tipo\": \"Maestra Quesera\",\n  \"frase\": \"Conservamos nuestra tradición quesera.\",\n  \"is_authorized\": true,\n  \"is_published\": false\n}",
+              "raw": "{\n  \"autor_nombre\": \"Mercedes Caisabanda\",\n  \"autor_tipo\": \"Maestra Quesera\",\n  \"frase\": \"Conservamos nuestra tradición quesera.\",\n  \"is_authorized\": true,\n  \"is_published\": false,\n  \"avatar_url\": \"https://example.com/avatar.webp\",\n  \"calificacion\": 5\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -248,6 +248,168 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"is_published\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Aprobar y publicar testimonio",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}/aprobar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Aprobado y publicado\", function () { const data = pm.response.json(); pm.expect(data.is_approved).to.eql(true); pm.expect(data.is_published).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Marcar testimonio destacado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}/moderar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_featured\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar testimonios destacados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/testimonios?destacados=true",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Solo destacados\", function () { pm.response.json().forEach(item => pm.expect(item.is_featured).to.eql(true)); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Archivar testimonio",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}/archivar"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Archivado y oculto\", function () { const data = pm.response.json(); pm.expect(data.is_archived).to.eql(true); pm.expect(data.is_published).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Restaurar sin republicar",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}/moderar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_archived\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retirar aprobación",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/admin/testimonios/{{testimonial_id}}/moderar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_approved\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
