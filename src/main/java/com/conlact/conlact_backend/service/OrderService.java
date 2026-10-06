@@ -234,6 +234,144 @@ public class OrderService {
                 .build();
     }
 
+    /**
+     * Confirma el pago de una orden (vía webhook de pasarela o conciliación bancaria).
+     * Transiciona la orden a 'paid', el pago a 'approved' y las reservas de inventario a 'consumed'.
+     */
+    @Transactional
+    public Order confirmOrderPayment(UUID orderId, String providerTransactionId, java.util.Map<String, Object> providerPayload) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + orderId));
+
+        if (order.getStatus() == OrderStatus.paid || order.getStatus() == OrderStatus.completed) {
+            log.info("El pedido {} ya se encuentra confirmado/pagado. Idempotencia aplicada.", orderId);
+            return order;
+        }
+
+        order.setStatus(OrderStatus.paid);
+        order.setPaymentStatus(PaymentStatus.approved);
+
+        // Actualizar registro de pago
+        List<Payment> payments = paymentRepository.findByOrderId(orderId);
+        if (!payments.isEmpty()) {
+            Payment payment = payments.get(0);
+            payment.setStatus(PaymentStatus.approved);
+            if (providerTransactionId != null) {
+                payment.setProviderTransactionId(providerTransactionId);
+            }
+            if (providerPayload != null) {
+                payment.setProviderPayload(providerPayload);
+            }
+            paymentRepository.save(payment);
+        }
+
+        // Consolidar reservas de inventario
+        List<InventoryReservation> reservations = inventoryReservationRepository.findByOrderId(orderId);
+        for (InventoryReservation res : reservations) {
+            if (res.getStatus() == ReservationStatus.active) {
+                res.setStatus(ReservationStatus.consumed);
+            }
+        }
+        inventoryReservationRepository.saveAll(reservations);
+
+        Order saved = orderRepository.saveAndFlush(order);
+        log.info("Pedido {} confirmado exitosamente tras verificación de pago.", orderId);
+        return saved;
+    }
+
+    /**
+     * Cancela o revierte una orden por fallo en pasarela, rechazo o expiración.
+     * Transiciona la orden a 'cancelled', el pago a 'rejected', las reservas a 'released'
+     * y REVIERTE físicamente el stock de cada variante reservada.
+     */
+    @Transactional
+    public Order cancelAndRevertOrder(UUID orderId, String reason) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + orderId));
+
+        if (order.getStatus() == OrderStatus.cancelled) {
+            log.info("El pedido {} ya se encuentra cancelado. Idempotencia aplicada.", orderId);
+            return order;
+        }
+
+        order.setStatus(OrderStatus.cancelled);
+        order.setPaymentStatus(PaymentStatus.rejected);
+        if (reason != null && !reason.isBlank()) {
+            String note = order.getAdministrativeNotes() != null
+                    ? order.getAdministrativeNotes() + " | Cancelación: " + reason
+                    : "Cancelación: " + reason;
+            order.setAdministrativeNotes(note);
+        }
+
+        // Actualizar pagos asociados
+        List<Payment> payments = paymentRepository.findByOrderId(orderId);
+        for (Payment payment : payments) {
+            if (payment.getStatus() == PaymentStatus.pending) {
+                payment.setStatus(PaymentStatus.rejected);
+            }
+        }
+        paymentRepository.saveAll(payments);
+
+        // Liberar reservas de inventario y RESTITUIR stock físico
+        List<InventoryReservation> reservations = inventoryReservationRepository.findByOrderId(orderId);
+        for (InventoryReservation res : reservations) {
+            if (res.getStatus() == ReservationStatus.active) {
+                res.setStatus(ReservationStatus.released);
+                ProductVariant variant = res.getProductVariant();
+                if (variant != null) {
+                    variant.addStock(res.getQuantity());
+                    productVariantRepository.save(variant);
+                    log.info("Stock revertido: +{} para variante SKU: {}", res.getQuantity(), variant.getSku());
+                }
+            }
+        }
+        inventoryReservationRepository.saveAll(reservations);
+
+        Order saved = orderRepository.saveAndFlush(order);
+        log.info("Pedido {} cancelado exitosamente y stock restituido.", orderId);
+        return saved;
+    }
+
+    /**
+     * BE-30 / BE-31: Libera de forma transaccional todas las reservas de stock vencidas
+     * (expiradas por superar el tiempo límite sin completar el pago), restituye el inventario
+     * físico a cada variante y transiciona la orden asociada a cancelada.
+     */
+    @Transactional
+    public int releaseExpiredReservations() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<InventoryReservation> expired = inventoryReservationRepository
+                .findByStatusAndExpiresAtBefore(ReservationStatus.active, now);
+
+        if (expired.isEmpty()) {
+            return 0;
+        }
+
+        log.info("Procesando expiración automática de {} reservas de inventario vencidas...", expired.size());
+        for (InventoryReservation res : expired) {
+            res.setStatus(ReservationStatus.released);
+            ProductVariant variant = res.getProductVariant();
+            if (variant != null) {
+                variant.addStock(res.getQuantity());
+                productVariantRepository.save(variant);
+                log.info("Stock restituido por expiración: +{} para variante SKU: {}", res.getQuantity(), variant.getSku());
+            }
+
+            Order order = res.getOrder();
+            if (order != null && order.getStatus() == OrderStatus.pending) {
+                order.setStatus(OrderStatus.cancelled);
+                order.setPaymentStatus(PaymentStatus.rejected);
+                String note = order.getAdministrativeNotes() != null
+                        ? order.getAdministrativeNotes() + " | Cancelado por expiración de reserva temporal"
+                        : "Cancelado por expiración de reserva temporal";
+                order.setAdministrativeNotes(note);
+                orderRepository.save(order);
+            }
+        }
+        inventoryReservationRepository.saveAll(expired);
+        return expired.size();
+    }
+
     private DeliveryMethod parseDeliveryMethod(String method) {
         if (method == null || method.isBlank()) {
             throw new BadRequestException("El método de entrega es requerido ('delivery' o 'pickup')");

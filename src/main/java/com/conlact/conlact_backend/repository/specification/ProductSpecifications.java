@@ -15,7 +15,7 @@ public final class ProductSpecifications {
     }
 
     public static Specification<Product> isPublished() {
-        return (root, query, cb) -> cb.equal(root.get("status"), ProductStatus.published);
+        return (root, query, cb) -> cb.equal(cb.function("text", String.class, root.get("status")), ProductStatus.published.name());
     }
 
     public static Specification<Product> byAssociation(String associationIdentifier) {

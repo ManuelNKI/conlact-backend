@@ -1,0 +1,295 @@
+{
+  "info": {
+    "name": "CONLAC-T - [BE-31] QA Transaccional y Financiero S6",
+    "description": "Colección oficial versionada para el Milestone S6: Flujo Integral de Compra Transaccional (BE-29), Reserva Temporal y Transferencias (BE-30), Auditoría Financiera de Centavos/Redondeo, y Simulación de Webhooks (BE-28) con confirmación o reversión automática de stock.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "variant_id",
+      "value": "ba000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "shipping_zone_id",
+      "value": "f0000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "order_id",
+      "value": ""
+    },
+    {
+      "key": "order_number",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "Creación de Pedidos & Auditoría Financiera (BE-29 / BE-30)",
+      "item": [
+        {
+          "name": "Crear pedido a domicilio con reserva de stock [Delivery - PayPhone]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente\": {\n    \"nombre\": \"Andrés Morales\",\n    \"cedula_ruc\": \"1720000001\",\n    \"telefono\": \"0998877665\",\n    \"email\": \"andres.morales@test.com\",\n    \"direccion\": \"Calle Bolívar y Guayaquil 4-50\"\n  },\n  \"metodo_entrega\": \"delivery\",\n  \"zona_envio_id\": \"{{shipping_zone_id}}\",\n  \"direccion_entrega\": \"Calle Bolívar y Guayaquil 4-50\",\n  \"metodo_pago\": \"payphone\",\n  \"items\": [\n    {\n      \"variante_id\": \"{{variant_id}}\",\n      \"cantidad\": 2\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/pedidos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 CREATED', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Auditoría financiera de centavos: total = subtotal + flete', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('subtotal');",
+                  "    pm.expect(json).to.have.property('flete');",
+                  "    pm.expect(json).to.have.property('total');",
+                  "    var calculatedTotal = Number((json.subtotal + json.flete).toFixed(2));",
+                  "    pm.expect(Number(json.total.toFixed(2))).to.eql(calculatedTotal);",
+                  "    pm.variables.set('order_id', json.id);",
+                  "    if (json.numero_pedido) {",
+                  "        pm.variables.set('order_number', json.numero_pedido);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear pedido con retiro en punto [Pickup - Flete $0.00]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente\": {\n    \"nombre\": \"Carla Velasco\",\n    \"cedula_ruc\": \"0609988771\",\n    \"telefono\": \"0987654321\",\n    \"email\": \"carla.velasco@test.com\"\n  },\n  \"metodo_entrega\": \"pickup\",\n  \"metodo_pago\": \"payphone\",\n  \"items\": [\n    {\n      \"variante_id\": \"{{variant_id}}\",\n      \"cantidad\": 1\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/pedidos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 CREATED', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Flete para retiro es exactamente 0.00', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(Number(json.flete)).to.eql(0);",
+                  "    pm.expect(json.total).to.eql(json.subtotal);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crear pedido con Transferencia Bancaria [BE-30]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cliente\": {\n    \"nombre\": \"Empresa Láctea Mayorista\",\n    \"cedula_ruc\": \"1790011223001\",\n    \"telefono\": \"022334455\",\n    \"email\": \"contabilidad@empresalactea.ec\"\n  },\n  \"metodo_entrega\": \"pickup\",\n  \"metodo_pago\": \"transferencia\",\n  \"items\": [\n    {\n      \"variante_id\": \"{{variant_id}}\",\n      \"cantidad\": 5\n    }\n  ]\n}"
+            },
+            "url": "{{base_url}}/api/pedidos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 201 CREATED', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Método de pago es transferencia y estado pending', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.metodo_pago).to.eql('transferencia');",
+                  "    pm.expect(json.estado).to.eql('pending');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Seguimiento de pedido por número de orden",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/api/pedidos/track/{{order_number}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Valida número de pedido', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.numero_pedido).to.eql(Number(pm.variables.get('order_number')));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Webhooks de Pago & Resolución de Stock (BE-28 / BE-31)",
+      "item": [
+        {
+          "name": "Simulación Webhook Aprobado (Confirmar Pago y Consumir Reserva)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientTransactionId\": \"{{order_id}}\",\n  \"transactionId\": \"PP-TX-882299\",\n  \"status\": \"Approved\",\n  \"statusCode\": 3\n}"
+            },
+            "url": "{{base_url}}/api/webhooks/payphone"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Pedido confirmado como pagado y aprobado', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.order_status).to.eql('paid');",
+                  "    pm.expect(json.payment_status).to.eql('approved');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Simulación Webhook Rechazado (Cancelar Pedido y Revertir Stock)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientTransactionId\": \"{{order_id}}\",\n  \"transactionId\": \"PP-TX-FAIL-001\",\n  \"status\": \"Rejected\",\n  \"statusCode\": 2,\n  \"message\": \"Transacción declinada por el banco emisor\"\n}"
+            },
+            "url": "{{base_url}}/api/webhooks/payphone"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Pedido cancelado y pago rechazado', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.success).to.eql(true);",
+                  "    pm.expect(json.order_status).to.eql('cancelled');",
+                  "    pm.expect(json.payment_status).to.eql('rejected');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Validación 400 - Payload de webhook sin ID de orden",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Approved\",\n  \"statusCode\": 3\n}"
+            },
+            "url": "{{base_url}}/api/webhooks/payphone"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code es 400 BAD REQUEST', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
