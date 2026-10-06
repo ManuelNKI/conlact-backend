@@ -128,17 +128,29 @@ El servidor iniciará en el puerto **`8080`**:
 
 Requiere **JDK 25** y **Docker Desktop** activo (Testcontainers levanta PostgreSQL automáticamente).
 
+### Suite Completa (todos los tests)
 ```powershell
-# Windows — configurar JDK 25 en la sesión actual
-$env:JAVA_HOME = 'C:\Program Files\Java\jdk-25.0.4.1'
-```
-
-### Suite Completa (todos los milestones QA)
-```powershell
+# Windows
 .\mvnw.cmd test
+
+# Linux / macOS
+./mvnw test
 ```
 
-### Por Milestone Específico
+### Pruebas Unitarias y de Infraestructura Específicas
+Para ejecutar pruebas individuales de seguridad, storage o integración en vivo:
+```powershell
+# Pruebas unitarias de tokens JWT (claves ECC P-256 y HMAC fallback)
+./mvnw test "-Dtest=JwtTokenProviderTest"
+
+# Pruebas unitarias de Supabase Storage con mocks (upload, download, signed URLs, delete)
+./mvnw test "-Dtest=SupabaseStorageServiceTest"
+
+# Pruebas de integración en vivo contra Supabase (requiere SUPABASE_URL y SERVICE_ROLE_KEY en .env)
+./mvnw test "-Dtest=SupabaseLiveConfigurationTest"
+```
+
+### Por Milestone Específico (QA)
 
 | Ticket | Área | Comando |
 |--------|------|---------|
