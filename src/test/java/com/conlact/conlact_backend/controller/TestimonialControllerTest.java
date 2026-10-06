@@ -14,7 +14,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -46,14 +45,14 @@ class TestimonialControllerTest {
                 "Mama Rosa Chiguano",
                 "Comunera",
                 "El queso tierno de Pilahuín sostiene la educación de nuestras familias.",
-                java.time.OffsetDateTime.now()
+                java.time.OffsetDateTime.now(), null, null, false
         );
     }
 
     @Test
     @DisplayName("GET /api/testimonios debe retornar lista de testimonios aprobados con HTTP 200")
     void shouldReturnPublicTestimonialsSpanishRoute() throws Exception {
-        when(testimonialService.getPublicTestimonials()).thenReturn(List.of(sampleTestimonial));
+        when(testimonialService.getPublicTestimonials(false)).thenReturn(List.of(sampleTestimonial));
 
         mockMvc.perform(get("/api/testimonios")
                         .accept(MediaType.APPLICATION_JSON))
@@ -68,7 +67,7 @@ class TestimonialControllerTest {
     @Test
     @DisplayName("GET /api/testimonials (alias en inglés) debe responder idéntico a la ruta en español")
     void shouldReturnPublicTestimonialsEnglishRoute() throws Exception {
-        when(testimonialService.getPublicTestimonials()).thenReturn(List.of(sampleTestimonial));
+        when(testimonialService.getPublicTestimonials(false)).thenReturn(List.of(sampleTestimonial));
 
         mockMvc.perform(get("/api/testimonials")
                         .accept(MediaType.APPLICATION_JSON))
@@ -79,7 +78,7 @@ class TestimonialControllerTest {
     @Test
     @DisplayName("GET /api/testimonios debe retornar lista vacía con HTTP 200 cuando no hay testimonios aprobados")
     void shouldReturnEmptyListWhenNoTestimonials() throws Exception {
-        when(testimonialService.getPublicTestimonials()).thenReturn(List.of());
+        when(testimonialService.getPublicTestimonials(false)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/testimonios"))
                 .andExpect(status().isOk())

@@ -59,7 +59,7 @@ class AdminTestimonialControllerTest {
                 true,
                 true,
                 OffsetDateTime.now(),
-                OffsetDateTime.now()
+                OffsetDateTime.now(), null, null, true, false, false
         );
     }
 
@@ -128,7 +128,7 @@ class AdminTestimonialControllerTest {
                 true,
                 false,
                 OffsetDateTime.now(),
-                OffsetDateTime.now()
+                OffsetDateTime.now(), null, null, false, false, false
         );
 
         when(testimonialService.createTestimonial(any(TestimonialRequest.class))).thenReturn(createdResponse);
@@ -169,7 +169,7 @@ class AdminTestimonialControllerTest {
                 true,
                 true,
                 sampleResponse.date(),
-                OffsetDateTime.now()
+                OffsetDateTime.now(), null, null, true, false, false
         );
 
         when(testimonialService.changePublication(eq(testimonialId), eq(true))).thenReturn(publishedResponse);

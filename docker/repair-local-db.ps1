@@ -29,7 +29,7 @@ if ([string]$running -ne 'true') {
 
 $baseReady = Invoke-LocalSql -Arguments @('-tAc', "SELECT to_regclass('public.profiles') IS NOT NULL AND to_regclass('public.associations') IS NOT NULL AND to_regprocedure('public.set_updated_at()') IS NOT NULL;")
 if (([string]$baseReady).Trim() -ne 't') {
-    throw 'El modelo base no está completo. Esta reparación solo recupera Storage y association_images.'
+    throw 'El modelo base no está completo. Esta reparación recupera Storage, association_images y la ampliación de testimonios sobre un modelo base existente.'
 }
 
 $repositoryPath = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
@@ -57,8 +57,10 @@ if (([string]$imagesExist).Trim() -eq 'f') {
     Write-Host 'association_images ya existe; se conserva sin repetir su migración.'
 }
 
-$schemaReady = Invoke-LocalSql -Arguments @('-tAc', "SELECT to_regclass('public.association_images') IS NOT NULL AND to_regprocedure('auth.uid()') IS NOT NULL AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') AND EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='Admin All on Storage Objects');")
+Invoke-LocalSql -Arguments @('-f', '/docker-entrypoint-initdb.d/05_extend_testimonials.sql')
+
+$schemaReady = Invoke-LocalSql -Arguments @('-tAc', "SELECT to_regclass('public.association_images') IS NOT NULL AND to_regprocedure('auth.uid()') IS NOT NULL AND EXISTS(SELECT 1 FROM pg_roles WHERE rolname='authenticated') AND EXISTS(SELECT 1 FROM pg_policies WHERE schemaname='storage' AND tablename='objects' AND policyname='Admin All on Storage Objects') AND EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='testimonials' AND column_name='is_approved');")
 if (([string]$schemaReady).Trim() -ne 't') {
     throw 'La verificación final del esquema falló. Revise la salida SQL y conserve el respaldo.'
 }
-Write-Host 'Base local reparada: Storage y association_images disponibles.'
+Write-Host 'Base local actualizada: Storage, association_images y moderación de testimonios disponibles.'

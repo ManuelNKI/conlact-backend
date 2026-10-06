@@ -90,6 +90,7 @@ docker compose up -d
   - [`docker/init/02_seed.sql`](docker/init/02_seed.sql): Datos maestros de prueba y asociaciones.
   - [`docker/init/03_storage_buckets.sql`](docker/init/03_storage_buckets.sql): Configuración de buckets y storage.
   - [`docker/init/04_association_images.sql`](docker/init/04_association_images.sql): Gestión de URLs de fotos de asociaciones [BE-14].
+  - [`docker/init/05_extend_testimonials.sql`](docker/init/05_extend_testimonials.sql): Avatar, calificación y moderación de testimonios.
 
 Si una base ya creada falla con `Schema validation: missing table [association_images]`, ejecutar desde la raíz del proyecto:
 
@@ -220,3 +221,11 @@ El CRUD de testimonios, productos, variantes y las operaciones transaccionales d
 
 Los contratos, reglas de publicación, ejemplos JSON, endpoints, pruebas y pendientes de arranque están documentados en [docs/BE15_BE19.md](docs/BE15_BE19.md).
 La colección para revisión manual está en [docs/postman/BE15_BE19.postman_collection.json](docs/postman/BE15_BE19.postman_collection.json).
+
+La API de testimonios también incluye aprobación, archivo, destacados opcionales, avatar y calificación de 1 a 5. Después de actualizar código sobre una base local existente, ejecutar `.\docker\repair-local-db.ps1` para aplicar la ampliación con respaldo.
+
+## Correo SMTP asíncrono (BE-24)
+
+`EmailNotificationService` usa JavaMailSender y plantillas HTML Thymeleaf para contacto y pedidos. El envío corre mediante `@Async` y devuelve un `CompletableFuture` que permite observar fallos. Por defecto está deshabilitado hasta configurar SMTP. Ver [uso, plantillas y configuración](docs/BE24_CORREO.md).
+
+El formulario de contacto ya invoca el servicio después de guardar el mensaje. Sus notificaciones se dirigen a `MAIL_ADMIN_RECIPIENT`, o a `MAIL_FROM` cuando no se configura un destinatario aparte.

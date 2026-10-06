@@ -1,76 +1,103 @@
 package com.conlact.conlact_backend.service;
 
+import com.conlact.conlact_backend.email.EmailDeliveryException;
+import com.conlact.conlact_backend.email.IEmailService;
+import com.conlact.conlact_backend.email.EmailTemplate;
+import com.conlact.conlact_backend.email.TemplatedEmail;
 import com.conlact.conlact_backend.entity.ContactMessage;
+import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
-public class EmailNotificationService {
+public class EmailNotificationService implements IEmailService {
+    private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
+    private final boolean enabled;
+    private final String senderAddress;
+    private final String senderName;
+    private final String adminRecipient;
 
-    private final String adminRecipientEmail;
-    private final String senderEmail;
-    private final boolean mailEnabled;
-
-    public EmailNotificationService(
-            @Value("${app.mail.admin-recipient:admin@conlact.org}") String adminRecipientEmail,
-            @Value("${app.mail.from:notificaciones@conlact.org}") String senderEmail,
-            @Value("${app.mail.enabled:false}") boolean mailEnabled) {
-        this.adminRecipientEmail = adminRecipientEmail;
-        this.senderEmail = senderEmail;
-        this.mailEnabled = mailEnabled;
+    public EmailNotificationService(JavaMailSender mailSender, TemplateEngine templateEngine,
+                                    @Value("${app.mail.enabled:false}") boolean enabled,
+                                    @Value("${app.mail.from:no-reply@conlact.local}") String senderAddress,
+                                    @Value("${app.mail.sender-name:CONLAC-T}") String senderName,
+                                    @Value("${app.mail.admin-recipient:${app.mail.from:no-reply@conlact.local}}") String adminRecipient) {
+        this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
+        this.enabled = enabled;
+        this.senderAddress = senderAddress;
+        this.senderName = senderName;
+        this.adminRecipient = adminRecipient;
     }
 
-    /**
-     * Envía de forma asíncrona una notificación por correo electrónico a los administradores
-     * cuando un cliente o interesado remite un mensaje a través del formulario público de contacto.
-     */
-    @Async
+    @Override
+    @Async("mailTaskExecutor")
+    public CompletableFuture<Void> sendEmail(TemplatedEmail email) {
+        deliverEmail(email);
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    @Async("mailTaskExecutor")
     public void sendContactNotificationToAdmin(ContactMessage contactMessage) {
+        Objects.requireNonNull(contactMessage, "El mensaje de contacto es obligatorio");
+        if (!enabled) {
+            log.info("Notificación de contacto omitida: correo deshabilitado, mensaje {}", contactMessage.getId());
+            return;
+        }
         try {
-            String subject = "[CONLAC-T] Nuevo mensaje de contacto: " + contactMessage.getSubject();
-            String formattedBody = buildNotificationBody(contactMessage);
-
-            log.info("Disparando notificación de correo al administrador [{}] desde [{}] con asunto: '{}'. Contenido: \n{}",
-                    adminRecipientEmail, senderEmail, subject, formattedBody);
-
-            if (mailEnabled) {
-                // Aquí se conectará el cliente JavaMail en Sprint 5 (BE-24)
-                log.info("Correo electrónico despachado exitosamente vía SMTP a {}", adminRecipientEmail);
-            } else {
-                log.info("Servicio de correo en modo simulado/local. Notificación registrada exitosamente.");
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("contactName", contactMessage.getName());
+            variables.put("contactEmail", contactMessage.getEmail());
+            variables.put("message", contactMessage.getMessage());
+            if (contactMessage.getSubject() != null) {
+                variables.put("contactSubject", contactMessage.getSubject());
             }
+            if (contactMessage.getPhone() != null) {
+                variables.put("phone", contactMessage.getPhone());
+            }
+            deliverEmail(new TemplatedEmail(adminRecipient, "[CONLAC-T] Nuevo mensaje de contacto",
+                    EmailTemplate.CONTACT_NOTIFICATION, variables));
         } catch (Exception ex) {
-            log.error("Error al despachar notificación de correo para el mensaje de contacto id={}: {}",
-                    contactMessage.getId(), ex.getMessage(), ex);
+            log.error("No se pudo notificar el contacto {}: {}", contactMessage.getId(), ex.getClass().getSimpleName());
         }
     }
 
-    private String buildNotificationBody(ContactMessage message) {
-        return """
-                ============================================================
-                NUEVO MENSAJE DE CONTACTO INSTITUCIONAL - CONLAC-T
-                ============================================================
-                ID Mensaje: %s
-                Fecha: %s
-                Remitente: %s
-                Correo: %s
-                Teléfono: %s
-                Asunto: %s
-                ------------------------------------------------------------
-                Mensaje:
-                %s
-                ============================================================
-                """.formatted(
-                message.getId(),
-                message.getCreatedAt() != null ? message.getCreatedAt() : "Recién recibido",
-                message.getName(),
-                message.getEmail(),
-                message.getPhone() != null ? message.getPhone() : "No provisto",
-                message.getSubject(),
-                message.getMessage()
-        );
+    private void deliverEmail(TemplatedEmail email) {
+        Objects.requireNonNull(email, "El correo es obligatorio");
+        if (!enabled) {
+            throw new EmailDeliveryException("El envío de correos está deshabilitado. Configure SMTP y MAIL_ENABLED");
+        }
+        try {
+            Context context = new Context(Locale.forLanguageTag("es-EC"));
+            context.setVariables(email.variables());
+            String html = templateEngine.process(email.template().templateName(), context);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, StandardCharsets.UTF_8.name());
+            helper.setFrom(senderAddress, senderName);
+            helper.setTo(email.recipient());
+            helper.setSubject(email.subject());
+            helper.setText(html, true);
+            mailSender.send(message);
+            log.info("Correo enviado mediante plantilla {}", email.template());
+        } catch (Exception ex) {
+            log.error("Falló el envío con plantilla {}: {}", email.template(), ex.getClass().getSimpleName());
+            throw new EmailDeliveryException("No se pudo enviar el correo", ex);
+        }
     }
 }

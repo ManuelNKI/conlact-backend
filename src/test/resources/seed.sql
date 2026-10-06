@@ -344,13 +344,14 @@ on conflict (name) do nothing;
 -- 7. TESTIMONIOS (Sección 2 #5: Clientes finales y B2B)
 -- ============================================================
 insert into public.testimonials (
-    id, author_name, author_type, quote, is_authorized, is_published
+    id, author_name, author_type, quote, is_authorized, is_published, is_approved
 ) values
 (
     'e0000000-0000-0000-0000-000000000001',
     'Mariana Morales',
     'Cliente Final (Ambato)',
     'El queso fresco de El Lindero sabe a la leche de campo de antes, tierno y con el punto exacto de sal. Se nota la diferencia frente al queso industrial.',
+    true,
     true,
     true
 ),
@@ -359,6 +360,7 @@ insert into public.testimonials (
     'Restaurante Tradiciones Andinas',
     'Comprador Comercial B2B (Quito)',
     'Compramos semanalmente el queso de hoja para nuestras humitas y empanadas. La elasticidad y el aroma de achira son insuperables para nuestros platos.',
+    true,
     true,
     true
 )
