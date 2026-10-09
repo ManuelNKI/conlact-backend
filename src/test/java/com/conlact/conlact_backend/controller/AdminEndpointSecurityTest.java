@@ -72,4 +72,14 @@ class AdminEndpointSecurityTest {
                         .header("Access-Control-Request-Headers", "Authorization,Content-Type"))
                 .andExpect(status().isOk()).andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:3000"));
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"aprobar", "approve", "archivar", "archive", "moderar", "moderate"})
+    @WithMockUser(roles = "USER")
+    @DisplayName("Testimonios: Las nuevas acciones de moderación requieren rol ADMIN")
+    void shouldProtectModerationActions(String action) throws Exception {
+        mvc.perform(patch("/api/admin/testimonios/00000000-0000-0000-0000-000000000001/" + action)
+                        .contentType("application/json").content("{\"is_featured\":true}"))
+                .andExpect(status().isForbidden());
+    }
 }

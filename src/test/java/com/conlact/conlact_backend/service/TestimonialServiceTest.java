@@ -1,6 +1,7 @@
 package com.conlact.conlact_backend.service;
 
 import com.conlact.conlact_backend.dto.testimonial.TestimonialRequest;
+import com.conlact.conlact_backend.dto.testimonial.TestimonialModerationRequest;
 import com.conlact.conlact_backend.entity.Testimonial;
 import com.conlact.conlact_backend.exception.BadRequestException;
 import com.conlact.conlact_backend.exception.ResourceNotFoundException;
@@ -30,7 +31,7 @@ class TestimonialServiceTest {
     void shouldQueryOnlyApprovedTestimonials() {
         Testimonial testimonial = Testimonial.builder().id(UUID.randomUUID()).authorName("Mercedes")
                 .quote("Queso de nuestra comunidad").isAuthorized(true).isPublished(true).build();
-        when(repository.findByIsPublishedTrueAndIsAuthorizedTrueOrderByCreatedAtDescIdAsc()).thenReturn(List.of(testimonial));
+        when(repository.findPublicTestimonials(false)).thenReturn(List.of(testimonial));
         assertThat(service.getPublicTestimonials()).singleElement().satisfies(response -> {
             assertThat(response.authorName()).isEqualTo("Mercedes");
             assertThat(response.quote()).isEqualTo("Queso de nuestra comunidad");
@@ -48,6 +49,9 @@ class TestimonialServiceTest {
         assertThat(response.quote()).isEqualTo("Nuestra tradición");
         assertThat(response.isAuthorized()).isFalse();
         assertThat(response.isPublished()).isFalse();
+        assertThat(response.isApproved()).isFalse();
+        assertThat(response.isFeatured()).isFalse();
+        assertThat(response.isArchived()).isFalse();
     }
 
     @Test
@@ -88,5 +92,77 @@ class TestimonialServiceTest {
         UUID id = UUID.randomUUID();
         when(repository.findByIdForUpdate(id)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> service.deleteTestimonial(id)).isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Testimonios: La consulta de destacados filtra desde el repositorio")
+    void shouldFilterFeaturedTestimonials() {
+        when(repository.findPublicTestimonials(true)).thenReturn(List.of());
+        assertThat(service.getPublicTestimonials(true)).isEmpty();
+        verify(repository).findPublicTestimonials(true);
+    }
+
+    @Test
+    @DisplayName("Testimonios: Archivar conserva el registro y retira publicación y destacado")
+    void shouldArchiveWithoutDeleting() {
+        Testimonial testimonial = Testimonial.builder().id(UUID.randomUUID()).isAuthorized(true)
+                .isApproved(true).isPublished(true).isFeatured(true).build();
+        when(repository.findByIdForUpdate(testimonial.getId())).thenReturn(Optional.of(testimonial));
+        when(repository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var archived = service.archiveTestimonial(testimonial.getId());
+        assertThat(archived.isArchived()).isTrue();
+        assertThat(archived.isPublished()).isFalse();
+        assertThat(archived.isFeatured()).isFalse();
+        assertThat(archived.isApproved()).isTrue();
+        assertThatThrownBy(() -> service.approveTestimonial(testimonial.getId())).isInstanceOf(BadRequestException.class);
+        verify(repository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("Testimonios: Rechazar aprobación retira publicación y destacado")
+    void shouldUnpublishRejectedTestimonials() {
+        Testimonial testimonial = Testimonial.builder().id(UUID.randomUUID()).isAuthorized(true)
+                .isApproved(true).isPublished(true).isFeatured(true).build();
+        when(repository.findByIdForUpdate(testimonial.getId())).thenReturn(Optional.of(testimonial));
+        when(repository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var result = service.moderateTestimonial(testimonial.getId(), new TestimonialModerationRequest(false, null, null));
+        assertThat(result.isApproved()).isFalse();
+        assertThat(result.isPublished()).isFalse();
+        assertThat(result.isFeatured()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Testimonios: Moderación vacía y destacado sin aprobación son inválidos")
+    void shouldRejectInvalidModeration() {
+        assertThatThrownBy(() -> service.moderateTestimonial(UUID.randomUUID(), new TestimonialModerationRequest(null, null, null)))
+                .isInstanceOf(BadRequestException.class);
+        Testimonial testimonial = Testimonial.builder().id(UUID.randomUUID()).build();
+        when(repository.findByIdForUpdate(testimonial.getId())).thenReturn(Optional.of(testimonial));
+        assertThatThrownBy(() -> service.moderateTestimonial(testimonial.getId(), new TestimonialModerationRequest(null, true, null)))
+                .isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    @DisplayName("Testimonios: Publicación administrativa mantiene compatibilidad y devuelve avatar y calificación")
+    void shouldCreateApprovedProfile() {
+        when(repository.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        var result = service.createTestimonial(new TestimonialRequest("Mercedes", "Aliada", "Frase", true, true,
+                " https://example.com/avatar ", 5, null, true, null));
+        assertThat(result.isApproved()).isTrue();
+        assertThat(result.isFeatured()).isTrue();
+        assertThat(result.avatarUrl()).isEqualTo("https://example.com/avatar");
+        assertThat(result.rating()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("Testimonios: Avatar inseguro, calificación fuera de rango y publicación rechazada no se guardan")
+    void shouldRejectInvalidProfile() {
+        assertThatThrownBy(() -> service.createTestimonial(new TestimonialRequest("Mercedes", null, "Frase", true, false,
+                "javascript:alert(1)", 5, null, null, null))).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> service.createTestimonial(new TestimonialRequest("Mercedes", null, "Frase", true, false,
+                null, 6, null, null, null))).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> service.createTestimonial(new TestimonialRequest("Mercedes", null, "Frase", true, true,
+                null, null, false, null, null))).isInstanceOf(BadRequestException.class);
+        verify(repository, never()).saveAndFlush(any());
     }
 }

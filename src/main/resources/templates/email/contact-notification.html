@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Nuevo contacto · CONLAC-T</title></head>
+<body style="font-family:Arial,sans-serif;color:#263c30;line-height:1.6;">
+<h1 style="font-size:24px;">Nuevo mensaje de contacto</h1>
+<p><strong>Nombre:</strong> <span th:text="${contactName}">Contacto</span></p>
+<p><strong>Correo:</strong> <span th:text="${contactEmail}">Correo</span></p>
+<p th:if="${phone != null}"><strong>Teléfono:</strong> <span th:text="${phone}">Teléfono</span></p>
+<p th:if="${contactSubject != null}"><strong>Asunto:</strong> <span th:text="${contactSubject}">Asunto</span></p>
+<p style="white-space:pre-line;" th:text="${message}">Mensaje</p>
+<hr><p style="font-size:12px;">CONLAC-T · Pilahuín</p>
+</body></html>

@@ -300,4 +300,3 @@ class OrderTransactionalFlowIntegrationTest extends AdminApiIntegrationSupport {
         assertThat(json.path("payphone_url").isNull() || json.path("payphone_url").asText().isBlank()).isTrue();
     }
 }
-

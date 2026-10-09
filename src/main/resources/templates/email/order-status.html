@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>Actualización de pedido · CONLAC-T</title></head>
+<body style="font-family:Arial,sans-serif;color:#263c30;line-height:1.6;">
+<h1 style="font-size:24px;">Actualización de tu pedido</h1>
+<p th:text="|Hola, ${customerName}.|">Hola.</p>
+<p>Pedido: <strong th:text="${orderNumber}">Número</strong></p>
+<p>Estado: <strong th:text="${status}">Estado</strong></p>
+<p th:if="${message != null}" style="white-space:pre-line;" th:text="${message}">Información</p>
+<p th:if="${actionUrl != null}"><a th:href="${actionUrl}">Consultar pedido</a></p>
+<hr><p style="font-size:12px;">CONLAC-T · Pilahuín</p>
+</body></html>

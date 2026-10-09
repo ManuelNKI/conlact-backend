@@ -92,13 +92,14 @@ Documentación técnica de la implementación del módulo de mensajería y formu
 
 ## 4. Disparo Asíncrono de Correos (`EmailNotificationService`)
 
-Al persistirse el mensaje, se dispara el método asíncrono `@Async`:
+Después de confirmar la transacción del mensaje, se encola la notificación asíncrona mediante `IEmailService`:
 ```java
 emailNotificationService.sendContactNotificationToAdmin(savedMessage);
 ```
-- Notifica al buzón configurado del administrador (`app.mail.admin-recipient`).
-- El proceso se ejecuta en un hilo secundario para garantizar tiempos de respuesta ultrarrápidos (< 50ms) en la API del cliente.
-- Las posibles indisponibilidades temporales del servidor SMTP no interrumpen ni hacen fallar la confirmación al cliente (`try-catch` aislado con registro estructurado en logs).
+- Notifica al buzón configurado en `MAIL_ADMIN_RECIPIENT` (`app.mail.admin-recipient`); si se omite, utiliza `MAIL_FROM`.
+- Usa el servicio SMTP real de BE-24, la plantilla HTML de contacto y el executor `mailTaskExecutor`; la petición HTTP no espera la entrega SMTP.
+- Las indisponibilidades SMTP y rechazos de la cola se registran sin hacer fallar la confirmación del contacto guardado. Una transacción revertida no dispara notificaciones.
+- Con `MAIL_ENABLED=false` se omite el aviso; no se informa una entrega simulada como envío exitoso. Ver [configuración y comportamiento de BE-24](BE24_CORREO.md).
 
 ---
 

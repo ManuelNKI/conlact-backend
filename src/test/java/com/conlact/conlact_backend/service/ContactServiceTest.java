@@ -4,6 +4,7 @@ import com.conlact.conlact_backend.dto.contact.AdminContactMessageResponse;
 import com.conlact.conlact_backend.dto.contact.ContactMessageCreateRequest;
 import com.conlact.conlact_backend.dto.contact.ContactMessageResponse;
 import com.conlact.conlact_backend.entity.ContactMessage;
+import com.conlact.conlact_backend.email.IEmailService;
 import com.conlact.conlact_backend.exception.ResourceNotFoundException;
 import com.conlact.conlact_backend.repository.ContactMessageRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +14,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -31,7 +35,7 @@ class ContactServiceTest {
     private ContactMessageRepository contactMessageRepository;
 
     @Mock
-    private EmailNotificationService emailNotificationService;
+    private IEmailService emailNotificationService;
 
     private ContactService contactService;
 
@@ -80,7 +84,55 @@ class ContactServiceTest {
         assertThat(saved.getPrivacyAccepted()).isTrue();
         assertThat(saved.getIsResolved()).isFalse();
 
-        verify(emailNotificationService).sendContactNotificationToAdmin(saved);
+        verify(emailNotificationService).sendContactNotificationToAdmin(argThat(message ->
+                message != saved && generatedId.equals(message.getId())
+                        && saved.getEmail().equals(message.getEmail())
+                        && saved.getMessage().equals(message.getMessage())));
+    }
+
+    private ContactMessageCreateRequest validRequest() {
+        return new ContactMessageCreateRequest("María", "maria@example.com", null,
+                "Consulta", "Consulta de productos artesanales", true);
+    }
+
+    @Test
+    @DisplayName("Contacto: La notificación se encola únicamente después del commit")
+    void shouldNotifyOnlyAfterCommit() {
+        when(contactMessageRepository.save(any(ContactMessage.class))).thenAnswer(i -> i.getArgument(0));
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            contactService.processContactMessage(validRequest());
+            verifyNoInteractions(emailNotificationService);
+            TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+            verify(emailNotificationService).sendContactNotificationToAdmin(any(ContactMessage.class));
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    @DisplayName("Contacto: Una transacción revertida no dispara correos")
+    void shouldNotNotifyOnRollback() {
+        when(contactMessageRepository.save(any(ContactMessage.class))).thenAnswer(i -> i.getArgument(0));
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            contactService.processContactMessage(validRequest());
+            TransactionSynchronizationManager.getSynchronizations()
+                    .forEach(s -> s.afterCompletion(TransactionSynchronization.STATUS_ROLLED_BACK));
+            verifyNoInteractions(emailNotificationService);
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
+    }
+
+    @Test
+    @DisplayName("Contacto: Un rechazo de la cola de correo conserva la confirmación del mensaje guardado")
+    void shouldPreserveContactResponseWhenMailQueueRejectsTask() {
+        when(contactMessageRepository.save(any(ContactMessage.class))).thenAnswer(i -> i.getArgument(0));
+        doThrow(new TaskRejectedException("Cola de prueba llena"))
+                .when(emailNotificationService).sendContactNotificationToAdmin(any(ContactMessage.class));
+        assertThat(contactService.processContactMessage(validRequest()).status()).isEqualTo("received");
+        verify(contactMessageRepository).save(any(ContactMessage.class));
     }
 
     @Test
