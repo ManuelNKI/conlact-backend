@@ -35,11 +35,21 @@ public class SecurityConfig {
                         .authenticationEntryPoint(authenticationEntryPoint)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger y OpenAPI
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
                         // Error dispatch de Spring Boot
                         .requestMatchers("/error").permitAll()
 
                         // Preflight requests CORS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // Autenticación pública (Login)
+                        .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
 
                         // Endpoints públicos del frontend (Tienda, Asociaciones, Recetas, Turismo, Testimonios)
                         .requestMatchers(HttpMethod.GET, "/api/associations/**", "/api/asociaciones/**").permitAll()
