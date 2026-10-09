@@ -12,6 +12,41 @@ services:
     volumes:
       - ./docker/init:/docker-entrypoint-initdb.d:ro
       - pgdata-conlact:/var/lib/postgresql/data
+    networks:
+      - conlact-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d conlact_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: conlact-backend-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/conlact_local
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_PROFILES_ACTIVE: local
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      SUPABASE_URL: ${SUPABASE_URL:-https://gnchkmpyvqdmxhnbjpdw.supabase.co}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      SUPABASE_JWT_PUBLIC_KEY: ${SUPABASE_JWT_PUBLIC_KEY:-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAED8jYRCVN0qDkWLJU4rIxN644oqvS4aR/BqsYauZueVC7Ts0OSwd34upCpUi90sznUfhrwO+uYHbXJRljs0dNlQ==}
+      SUPABASE_JWT_ISSUER: ${SUPABASE_JWT_ISSUER:-https://gnchkmpyvqdmxhnbjpdw.supabase.co/auth/v1}
+    networks:
+      - conlact-network
 
 volumes:
   pgdata-conlact:
+
+networks:
+  conlact-network:
+    driver: bridge
