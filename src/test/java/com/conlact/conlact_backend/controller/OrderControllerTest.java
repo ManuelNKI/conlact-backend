@@ -2,6 +2,7 @@ package com.conlact.conlact_backend.controller;
 
 import com.conlact.conlact_backend.dto.order.OrderCreateRequest;
 import com.conlact.conlact_backend.dto.order.OrderCreateResponse;
+import com.conlact.conlact_backend.dto.order.PaymentProofResponse;
 import com.conlact.conlact_backend.service.OrderService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +24,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -156,5 +158,37 @@ class OrderControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidRequest)))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("BE-30: POST multipart /api/pedidos/{id}/comprobante-transferencia registra comprobante")
+    void shouldUploadBankTransferProof() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID paymentId = UUID.randomUUID();
+        PaymentProofResponse response = PaymentProofResponse.builder()
+                .orderId(orderId)
+                .paymentId(paymentId)
+                .paymentMethod("transferencia")
+                .paymentStatus("verified")
+                .proofStoragePath("orders/" + orderId + "/proof.pdf")
+                .bankReference("TRX-123")
+                .registeredAt(OffsetDateTime.now())
+                .build();
+
+        when(orderService.uploadBankTransferProof(any(), any(), any())).thenReturn(response);
+
+        var file = new org.springframework.mock.web.MockMultipartFile(
+                "file", "comprobante.pdf", "application/pdf", "PDF".getBytes());
+
+        mockMvc.perform(multipart("/api/pedidos/" + orderId + "/comprobante-transferencia")
+                        .file(file)
+                        .param("referencia_bancaria", "TRX-123"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.pedido_id").value(orderId.toString()))
+                .andExpect(jsonPath("$.pago_id").value(paymentId.toString()))
+                .andExpect(jsonPath("$.metodo_pago").value("transferencia"))
+                .andExpect(jsonPath("$.estado_pago").value("verified"))
+                .andExpect(jsonPath("$.ruta_comprobante").value("orders/" + orderId + "/proof.pdf"))
+                .andExpect(jsonPath("$.referencia_bancaria").value("TRX-123"));
     }
 }

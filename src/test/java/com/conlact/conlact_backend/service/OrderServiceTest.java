@@ -6,10 +6,13 @@ import com.conlact.conlact_backend.entity.*;
 import com.conlact.conlact_backend.entity.enums.DeliveryMethod;
 import com.conlact.conlact_backend.entity.enums.OrderStatus;
 import com.conlact.conlact_backend.entity.enums.PaymentMethod;
+import com.conlact.conlact_backend.entity.enums.PaymentStatus;
 import com.conlact.conlact_backend.entity.enums.ProductStatus;
+import com.conlact.conlact_backend.entity.enums.ReservationStatus;
 import com.conlact.conlact_backend.exception.BadRequestException;
 import com.conlact.conlact_backend.exception.InsufficientStockException;
 import com.conlact.conlact_backend.repository.*;
+import com.conlact.conlact_backend.storage.IStorage;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +31,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,6 +53,9 @@ class OrderServiceTest {
     private PaymentRepository paymentRepository;
 
     @Mock
+    private IStorage storage;
+
+    @Mock
     private EntityManager entityManager;
 
     private OrderService orderService;
@@ -60,6 +68,7 @@ class OrderServiceTest {
                 shippingZoneRepository,
                 inventoryReservationRepository,
                 paymentRepository,
+                storage,
                 entityManager
         );
     }
@@ -241,5 +250,53 @@ class OrderServiceTest {
         assertThatThrownBy(() -> orderService.createOrder(request))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("La zona de entrega ('zona_envio_id') es obligatoria");
+    }
+
+    @Test
+    @DisplayName("BE-30: Debe subir comprobante de transferencia, marcar pago verificado y consumir reserva")
+    void shouldUploadBankTransferProofAndConsumeReservation() {
+        UUID orderId = UUID.randomUUID();
+        UUID paymentId = UUID.randomUUID();
+        Product product = createProduct("Queso Manual");
+        ProductVariant variant = createVariant(product, "MAN-500", new BigDecimal("4.25"), 8);
+        Order order = Order.builder()
+                .id(orderId)
+                .paymentMethod(PaymentMethod.bank_transfer)
+                .paymentStatus(PaymentStatus.pending)
+                .status(OrderStatus.pending)
+                .expiresAt(OffsetDateTime.now().plusMinutes(15))
+                .build();
+        Payment payment = Payment.builder()
+                .id(paymentId)
+                .order(order)
+                .method(PaymentMethod.bank_transfer)
+                .status(PaymentStatus.pending)
+                .amount(new BigDecimal("4.25"))
+                .build();
+        InventoryReservation reservation = InventoryReservation.builder()
+                .order(order)
+                .productVariant(variant)
+                .quantity(1)
+                .status(ReservationStatus.active)
+                .expiresAt(order.getExpiresAt())
+                .build();
+
+        var proof = new org.springframework.mock.web.MockMultipartFile(
+                "file", "comprobante.pdf", "application/pdf", "PDF".getBytes());
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(paymentRepository.findByOrderId(orderId)).thenReturn(List.of(payment));
+        when(inventoryReservationRepository.findByOrderId(orderId)).thenReturn(List.of(reservation));
+        when(storage.upload(eq("payment-proofs"), any(), any(byte[].class), eq("application/pdf")))
+                .thenReturn("orders/" + orderId + "/proof-test.pdf");
+
+        var response = orderService.uploadBankTransferProof(orderId, proof, "TRX-123");
+
+        assertThat(response.paymentStatus()).isEqualTo("verified");
+        assertThat(response.proofStoragePath()).isEqualTo("orders/" + orderId + "/proof-test.pdf");
+        assertThat(payment.getBankReference()).isEqualTo("TRX-123");
+        assertThat(payment.getStatus()).isEqualTo(PaymentStatus.verified);
+        assertThat(order.getPaymentStatus()).isEqualTo(PaymentStatus.verified);
+        assertThat(reservation.getStatus()).isEqualTo(ReservationStatus.consumed);
     }
 }

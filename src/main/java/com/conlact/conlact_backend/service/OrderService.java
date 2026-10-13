@@ -2,23 +2,29 @@ package com.conlact.conlact_backend.service;
 
 import com.conlact.conlact_backend.dto.order.OrderCreateRequest;
 import com.conlact.conlact_backend.dto.order.OrderCreateResponse;
+import com.conlact.conlact_backend.dto.order.PaymentProofResponse;
 import com.conlact.conlact_backend.entity.*;
 import com.conlact.conlact_backend.entity.enums.*;
 import com.conlact.conlact_backend.exception.BadRequestException;
 import com.conlact.conlact_backend.exception.InsufficientStockException;
 import com.conlact.conlact_backend.exception.ResourceNotFoundException;
 import com.conlact.conlact_backend.repository.*;
+import com.conlact.conlact_backend.storage.IStorage;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Slf4j
@@ -31,6 +37,10 @@ public class OrderService {
     private final ShippingZoneRepository shippingZoneRepository;
     private final InventoryReservationRepository inventoryReservationRepository;
     private final PaymentRepository paymentRepository;
+    private final IStorage storage;
+
+    @Value("${app.supabase.storage.payment-bucket:payment-proofs}")
+    private String paymentBucket = "payment-proofs";
 
     @PersistenceContext
     private final EntityManager entityManager;
@@ -214,6 +224,71 @@ public class OrderService {
         return toResponse(order);
     }
 
+    @Transactional
+    public PaymentProofResponse uploadBankTransferProof(UUID orderId, MultipartFile proof, String bankReference) {
+        if (proof == null || proof.isEmpty()) {
+            throw new BadRequestException("El comprobante de transferencia es obligatorio");
+        }
+
+        String contentType = proof.getContentType();
+        validateProofContentType(contentType);
+
+        if (proof.getSize() > 10L * 1024 * 1024) {
+            throw new BadRequestException("El comprobante no puede superar 10MB");
+        }
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Pedido no encontrado con ID: " + orderId));
+
+        if (order.getPaymentMethod() != PaymentMethod.bank_transfer) {
+            throw new BadRequestException("Solo los pedidos con metodo de pago transferencia admiten comprobante bancario");
+        }
+
+        if (order.getStatus() == OrderStatus.cancelled) {
+            throw new BadRequestException("No se puede registrar comprobante para un pedido cancelado");
+        }
+
+        Payment payment = paymentRepository.findByOrderId(orderId).stream()
+                .filter(p -> p.getMethod() == PaymentMethod.bank_transfer)
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Pago por transferencia no encontrado para el pedido: " + orderId));
+
+        String path = "orders/" + orderId + "/proof-" + UUID.randomUUID() + extensionFor(contentType, proof.getOriginalFilename());
+        try {
+            String storedPath = storage.upload(paymentBucket, path, proof.getBytes(), contentType);
+            payment.setTransferProofStoragePath(storedPath);
+        } catch (IOException e) {
+            throw new BadRequestException("No se pudo leer el archivo del comprobante");
+        }
+
+        if (bankReference != null && !bankReference.isBlank()) {
+            payment.setBankReference(bankReference.trim());
+        }
+        payment.setStatus(PaymentStatus.verified);
+        paymentRepository.save(payment);
+
+        order.setPaymentStatus(PaymentStatus.verified);
+        orderRepository.save(order);
+
+        List<InventoryReservation> reservations = inventoryReservationRepository.findByOrderId(orderId);
+        for (InventoryReservation reservation : reservations) {
+            if (reservation.getStatus() == ReservationStatus.active) {
+                reservation.setStatus(ReservationStatus.consumed);
+            }
+        }
+        inventoryReservationRepository.saveAll(reservations);
+
+        return PaymentProofResponse.builder()
+                .orderId(order.getId())
+                .paymentId(payment.getId())
+                .paymentMethod("transferencia")
+                .paymentStatus(payment.getStatus().name())
+                .proofStoragePath(payment.getTransferProofStoragePath())
+                .bankReference(payment.getBankReference())
+                .registeredAt(OffsetDateTime.now())
+                .build();
+    }
+
     private OrderCreateResponse toResponse(Order order) {
         String payphoneUrl = null;
         if (order.getPaymentMethod() == PaymentMethod.payphone) {
@@ -393,6 +468,34 @@ public class OrderService {
             case "payphone" -> PaymentMethod.payphone;
             case "transferencia", "transfer", "bank_transfer" -> PaymentMethod.bank_transfer;
             default -> throw new BadRequestException("Método de pago desconocido: '" + method + "'. Valores permitidos: 'payphone', 'transferencia'");
+        };
+    }
+
+    private void validateProofContentType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            throw new BadRequestException("El comprobante debe incluir un tipo de archivo valido");
+        }
+        String normalized = contentType.toLowerCase(Locale.ROOT);
+        if (!List.of("image/jpeg", "image/png", "image/webp", "application/pdf").contains(normalized)) {
+            throw new BadRequestException("Formato de comprobante no permitido. Use JPG, PNG, WEBP o PDF");
+        }
+    }
+
+    private String extensionFor(String contentType, String originalFilename) {
+        String filename = originalFilename != null ? originalFilename.trim() : "";
+        int dot = filename.lastIndexOf('.');
+        if (dot >= 0 && dot < filename.length() - 1) {
+            String ext = filename.substring(dot).toLowerCase(Locale.ROOT);
+            if (List.of(".jpg", ".jpeg", ".png", ".webp", ".pdf").contains(ext)) {
+                return ext;
+            }
+        }
+        return switch (contentType.toLowerCase(Locale.ROOT)) {
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "image/webp" -> ".webp";
+            case "application/pdf" -> ".pdf";
+            default -> "";
         };
     }
 }

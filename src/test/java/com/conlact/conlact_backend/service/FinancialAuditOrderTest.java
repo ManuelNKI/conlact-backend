@@ -6,6 +6,7 @@ import com.conlact.conlact_backend.entity.*;
 import com.conlact.conlact_backend.entity.enums.*;
 import com.conlact.conlact_backend.exception.BadRequestException;
 import com.conlact.conlact_backend.repository.*;
+import com.conlact.conlact_backend.storage.IStorage;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +45,9 @@ class FinancialAuditOrderTest {
     private PaymentRepository paymentRepository;
 
     @Mock
+    private IStorage storage;
+
+    @Mock
     private EntityManager entityManager;
 
     private OrderService orderService;
@@ -56,6 +60,7 @@ class FinancialAuditOrderTest {
                 shippingZoneRepository,
                 inventoryReservationRepository,
                 paymentRepository,
+                storage,
                 entityManager
         );
     }
