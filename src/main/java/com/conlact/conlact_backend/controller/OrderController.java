@@ -2,11 +2,16 @@ package com.conlact.conlact_backend.controller;
 
 import com.conlact.conlact_backend.dto.order.OrderCreateRequest;
 import com.conlact.conlact_backend.dto.order.OrderCreateResponse;
+import com.conlact.conlact_backend.dto.order.OrderStatusUpdateRequest;
+import com.conlact.conlact_backend.dto.order.OrderStatusUpdateResponse;
+import com.conlact.conlact_backend.security.UserPrincipal;
 import com.conlact.conlact_backend.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -39,6 +44,17 @@ public class OrderController {
             @PathVariable UUID id) {
 
         OrderCreateResponse response = orderService.getOrderById(id);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping({"/{id}/estado", "/{id}/status"})
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OrderStatusUpdateResponse> updateOrderStatus(
+            @PathVariable UUID id,
+            @Valid @RequestBody OrderStatusUpdateRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+
+        OrderStatusUpdateResponse response = orderService.updateOrderStatus(id, request, principal);
         return ResponseEntity.ok(response);
     }
 }
