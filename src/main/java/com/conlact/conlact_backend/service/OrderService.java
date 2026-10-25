@@ -162,15 +162,6 @@ public class OrderService {
         }
         order.setItems(orderItems);
 
-        // 6. Crear registro de pago pendiente asociado
-        Payment payment = Payment.builder()
-                .order(order)
-                .method(paymentMethod)
-                .amount(total)
-                .status(PaymentStatus.pending)
-                .build();
-        order.setPayments(new ArrayList<>(List.of(payment)));
-
         // Guardar la orden y sus dependencias en cascada
         Order savedOrder = orderRepository.saveAndFlush(order);
 
@@ -179,6 +170,15 @@ public class OrderService {
             res.setOrder(savedOrder);
         }
         inventoryReservationRepository.saveAll(reservations);
+
+        // 6. Crear registro inicial de pago
+        Payment payment = Payment.builder()
+                .order(savedOrder)
+                .method(paymentMethod)
+                .status(PaymentStatus.pending)
+                .amount(savedOrder.getTotal())
+                .build();
+        paymentRepository.save(payment);
 
         // Refrescar para obtener orderNumber generado por sequence en base de datos si aplica
         if (savedOrder.getOrderNumber() == null && entityManager != null) {
