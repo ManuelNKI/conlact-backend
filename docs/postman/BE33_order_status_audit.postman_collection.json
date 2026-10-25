@@ -1,0 +1,290 @@
+{
+  "info": {
+    "_postman_id": "c33e8a71-8b20-4a8f-b9f1-a189f33b1e33",
+    "name": "CONLAC-T - [BE-33] Transición de Estados de Pedidos & Auditoría - Maybelline Navarro",
+    "description": "Colección Postman para probar el endpoint administrativo de transición de estados de órdenes (BE-33) con control de máquina de estados, registro en audit_log, reversión de stock e inventario y aliases en inglés y español.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "type": "string"
+    },
+    {
+      "key": "orderId",
+      "value": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Transiciones Válidas de Estado",
+      "item": [
+        {
+          "name": "PATCH - Pedido a PAGADO (Ruta Español)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"pagado\",\n  \"notas_administrativas\": \"Comprobante verificado con el banco Pichincha exitosamente.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/{{orderId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "{{orderId}}", "estado"]
+            },
+            "description": "Transición de PENDIENTE a PAGADO. Consume las reservas de inventario y marca el pago aprobado."
+          }
+        },
+        {
+          "name": "PATCH - Pedido a EN_PREPARACION (Ruta Inglés)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"preparing\",\n  \"admin_notes\": \"En proceso de empaque y refrigeración en planta Chibuleo.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/orders/{{orderId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "orders", "{{orderId}}", "status"]
+            },
+            "description": "Transición a EN_PREPARACIÓN usando ruta y payload en inglés."
+          }
+        },
+        {
+          "name": "PATCH - Pedido a ENVIADO",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"enviado\",\n  \"notas_administrativas\": \"Despachado en camión refrigerado - Guía #TRK-98124.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/{{orderId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "{{orderId}}", "estado"]
+            },
+            "description": "Transición de EN_PREPARACION a ENVIADO."
+          }
+        },
+        {
+          "name": "PATCH - Pedido a ENTREGADO (Terminal)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"entregado\",\n  \"notas_administrativas\": \"Recibido conforme en domicilio por el cliente final.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/{{orderId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "{{orderId}}", "estado"]
+            },
+            "description": "Transición a ENTREGADO. Estado final exitoso."
+          }
+        },
+        {
+          "name": "PATCH - Cancelar Pedido (Rollback de Stock)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"cancelado\",\n  \"notas_administrativas\": \"Cliente canceló por falta de stock en dirección de entrega.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/{{orderId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "{{orderId}}", "estado"]
+            },
+            "description": "Cancela el pedido y libera inmediatamente la reserva de inventario devolviendo el stock físico a las variantes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultas y Listados Administrativos",
+      "item": [
+        {
+          "name": "GET - Listado General de Pedidos Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos"]
+            },
+            "description": "Obtiene la lista completa de pedidos ordenados cronológicamente descendente."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Pruebas de Validación y Control de Errores",
+      "item": [
+        {
+          "name": "400 - Transición Inválida (Máquina de Estados)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"entregado\",\n  \"notas_administrativas\": \"Intento ilegal de saltar de pendiente a entregado directo.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/{{orderId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "{{orderId}}", "estado"]
+            },
+            "description": "Debe retornar 400 Bad Request indicando que la transición no está permitida."
+          }
+        },
+        {
+          "name": "400 - Estado Requerido Vacío",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"\",\n  \"notas_administrativas\": \"Sin nuevo estado.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/{{orderId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "{{orderId}}", "estado"]
+            },
+            "description": "Retorna 400 por validación de Bean Validation (@NotBlank)."
+          }
+        },
+        {
+          "name": "401 - Petición Sin Token de Administrador",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"pagado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/{{orderId}}/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "{{orderId}}", "estado"]
+            },
+            "description": "Debe rechazar con 401 Unauthorized por ser ruta administrativa protegida."
+          }
+        },
+        {
+          "name": "404 - Pedido Inexistente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevo_estado\": \"pagado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/pedidos/00000000-0000-0000-0000-000000000000/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "pedidos", "00000000-0000-0000-0000-000000000000", "estado"]
+            },
+            "description": "Debe retornar 404 Not Found si el UUID no existe en base de datos."
+          }
+        }
+      ]
+    }
+  ]
+}
