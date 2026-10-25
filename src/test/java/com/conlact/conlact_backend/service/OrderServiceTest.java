@@ -48,6 +48,12 @@ class OrderServiceTest {
     private PaymentRepository paymentRepository;
 
     @Mock
+    private com.conlact.conlact_backend.repository.AuditLogRepository auditLogRepository;
+
+    @Mock
+    private com.conlact.conlact_backend.email.IEmailService emailService;
+
+    @Mock
     private EntityManager entityManager;
 
     private OrderService orderService;
@@ -60,6 +66,8 @@ class OrderServiceTest {
                 shippingZoneRepository,
                 inventoryReservationRepository,
                 paymentRepository,
+                auditLogRepository,
+                emailService,
                 entityManager
         );
     }
