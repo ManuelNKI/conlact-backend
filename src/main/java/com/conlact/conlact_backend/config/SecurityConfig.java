@@ -42,6 +42,16 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
 
+                        // Spring Boot Actuator Health & Monitoreo Público (BE-39)
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/actuator/info"
+                        ).permitAll()
+
+                        // Endpoints de métricas avanzadas de Actuator protegidos para administradores
+                        .requestMatchers("/actuator/**").hasRole("ADMIN")
+
                         // Error dispatch de Spring Boot
                         .requestMatchers("/error").permitAll()
 

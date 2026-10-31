@@ -1,0 +1,15 @@
+FROM postgres:16-alpine
+
+# Instalar gzip y utilidades POSIX requeridas
+RUN apk add --no-cache gzip findutils tzdata
+
+WORKDIR /backups
+
+COPY docker/backup/backup.sh /usr/local/bin/backup.sh
+COPY docker/backup/entrypoint.sh /usr/local/bin/entrypoint.sh
+
+RUN chmod +x /usr/local/bin/backup.sh /usr/local/bin/entrypoint.sh
+
+VOLUME ["/backups"]
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

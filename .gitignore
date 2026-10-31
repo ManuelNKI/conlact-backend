@@ -95,3 +95,11 @@ $RECYCLE.BIN/
 .env.*.local
 *.env
 application-local-secrets.properties
+
+# ============================================================
+# Database Backups & Dumps (BE-39)
+# ============================================================
+docker/backups/*.sql
+docker/backups/*.sql.gz
+docker/backups/*.dump
+!docker/backups/.gitkeep
