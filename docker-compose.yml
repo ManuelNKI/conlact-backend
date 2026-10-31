@@ -44,9 +44,39 @@ services:
       SUPABASE_JWT_ISSUER: ${SUPABASE_JWT_ISSUER:-https://gnchkmpyvqdmxhnbjpdw.supabase.co/auth/v1}
     networks:
       - conlact-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  db-backup:
+    build:
+      context: .
+      dockerfile: docker/backup/Dockerfile.backup
+    container_name: conlact-db-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: conlact_local
+      POSTGRES_USER: postgres
+      PGPASSWORD: postgres
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: 7
+      BACKUP_CRON_SCHEDULE: "0 2 * * *"
+    volumes:
+      - ./docker/backups:/backups
+    networks:
+      - conlact-network
 
 volumes:
   pgdata-conlact:
+  backups-data:
 
 networks:
   conlact-network:
