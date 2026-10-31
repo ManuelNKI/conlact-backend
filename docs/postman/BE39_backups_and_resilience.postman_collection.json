@@ -1,0 +1,115 @@
+{
+  "info": {
+    "_postman_id": "e98f7a21-12c8-47a3-b459-a89c33e83939",
+    "name": "CONLAC-T - [BE-39] Monitoreo de Salud Actuator y Resiliencia - Maybelline Navarro",
+    "description": "Colección de peticiones para probar el monitoreo de salud con Spring Boot Actuator (/actuator/health), verificación de indicadores de base de datos y copias de seguridad de PostgreSQL (BE-39).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Monitoreo Público de Salud (Healthchecks)",
+      "item": [
+        {
+          "name": "GET - Estado General del Servicio (/actuator/health)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Comprueba el estado global del backend (UP), verificando el estado de PostgreSQL, espacio en disco y el almacenamiento de respaldos."
+          }
+        },
+        {
+          "name": "GET - Estado de Almacenamiento de Respaldos (/actuator/health/backupStorage)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/backupStorage",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health", "backupStorage"]
+            },
+            "description": "Consulta el componente individual BackupStorageHealthIndicator: cantidad de copias encontradas, tamaño total y fecha del último respaldo."
+          }
+        },
+        {
+          "name": "GET - Estado de Base de Datos (/actuator/health/db)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health/db",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health", "db"]
+            },
+            "description": "Verifica la conectividad activa con el servidor PostgreSQL mediante la sonda isValid()."
+          }
+        },
+        {
+          "name": "GET - Información de la Aplicación (/actuator/info)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "info"]
+            },
+            "description": "Retorna los metadatos de versión y descripción del consorcio lácteo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Seguridad y Endpoints Protegidos",
+      "item": [
+        {
+          "name": "GET - Métricas Administrativas con Token (/actuator/metrics)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "metrics"]
+            },
+            "description": "Acceso administrativo a las métricas del sistema (requiere rol ADMIN)."
+          }
+        },
+        {
+          "name": "401/403 - Rechazo de Acceso a Endpoints Sensibles sin Token (/actuator/beans)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/beans",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "beans"]
+            },
+            "description": "Debe ser rechazado con 401 Unauthorized o 403 Forbidden para usuarios anónimos."
+          }
+        }
+      ]
+    }
+  ]
+}
