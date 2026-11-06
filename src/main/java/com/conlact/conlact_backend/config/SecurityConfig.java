@@ -69,6 +69,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/recipes/**", "/api/recipes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tourism/**", "/api/turismo/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/testimonials/**", "/api/testimonios/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/paginas/**", "/api/capacitacion").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shipping-zones/**", "/api/zonas-envio/**").permitAll()
 
                         // Checkout y Formulario de Contacto (Públicos para clientes finales)
@@ -77,7 +78,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/contact", "/api/contacto").permitAll()
 
                         // Webhooks de pasarelas de pago (PayPhone u otros)
-                        .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
+                        .requestMatchers("/api/webhooks/**", "/api/webhook/**").denyAll()
 
                         // Endpoints Administrativos y Backoffice (Requieren ROL ADMIN vía Supabase JWT)
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

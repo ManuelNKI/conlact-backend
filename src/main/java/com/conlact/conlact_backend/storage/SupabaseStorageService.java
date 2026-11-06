@@ -66,11 +66,14 @@ public class SupabaseStorageService implements IStorage {
         this.productBucket = productBucket;
         this.recipeBucket = recipeBucket;
         this.paymentBucket = paymentBucket;
-        this.restClient = restClientBuilder
+        RestClient.Builder authenticatedBuilder = restClientBuilder
                 .baseUrl(this.storageBaseUrl)
-                .defaultHeader("apikey", serviceRoleKey)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + serviceRoleKey)
-                .build();
+                .defaultHeader("apikey", serviceRoleKey);
+        // New secret API keys are opaque credentials, not JWT bearer tokens.
+        if (!serviceRoleKey.startsWith("sb_secret_") && !serviceRoleKey.startsWith("sb_publishable_")) {
+            authenticatedBuilder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + serviceRoleKey);
+        }
+        this.restClient = authenticatedBuilder.build();
     }
 
     @Override

@@ -129,7 +129,7 @@ public class AdminProductService {
         Category category = product.getCategory();
         List<String> photos = product.getImages().stream()
                 .sorted(Comparator.comparing(ProductImage::getSortOrder).thenComparing(ProductImage::getId))
-                .map(image -> storage.getPublicUrl(productBucket, image.getStoragePath())).toList();
+                .map(image -> (image.getStoragePath().startsWith("https://") || image.getStoragePath().startsWith("http://") || image.getStoragePath().startsWith("/") ? image.getStoragePath() : storage.getPublicUrl(productBucket, image.getStoragePath()))).toList();
         return new AdminProductResponse(product.getId(), product.getName(), product.getSlug(), product.getCheeseType(),
                 product.getShortDescription(), product.getDescription(), product.getOriginText(), product.getConservation(),
                 association == null ? null : association.getName(), association == null ? null : association.getId(),

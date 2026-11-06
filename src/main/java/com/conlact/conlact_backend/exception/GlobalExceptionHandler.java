@@ -174,6 +174,19 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
+    @ExceptionHandler(com.conlact.conlact_backend.storage.StorageException.class)
+    public ResponseEntity<ErrorResponse> handleStorageException(
+            com.conlact.conlact_backend.storage.StorageException ex, HttpServletRequest request) {
+        log.error("Fallo del proveedor de almacenamiento: {}", ex.getMessage());
+        String message = "No se pudo guardar la imagen en el almacenamiento. Intenta nuevamente.";
+        if (ex.getMessage() != null && (ex.getMessage().contains("Invalid Compact JWS")
+                || ex.getMessage().contains("required property 'authorization'"))) {
+            message = "El almacenamiento de imágenes no pudo autenticarse. Revisa la clave de Supabase configurada en el servidor.";
+        }
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(new ErrorResponse(
+                HttpStatus.BAD_GATEWAY.value(), "Storage unavailable", message, request.getRequestURI()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(
             Exception ex, HttpServletRequest request) {

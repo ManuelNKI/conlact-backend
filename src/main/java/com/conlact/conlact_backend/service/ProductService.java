@@ -104,7 +104,7 @@ public class ProductService {
 
         List<String> photos = product.getImages().stream()
                 .sorted(Comparator.comparing(ProductImage::getSortOrder).thenComparing(ProductImage::getId))
-                .map(image -> storage.getPublicUrl(productBucket, image.getStoragePath()))
+                .map(image -> (image.getStoragePath().startsWith("https://") || image.getStoragePath().startsWith("http://") || image.getStoragePath().startsWith("/") ? image.getStoragePath() : storage.getPublicUrl(productBucket, image.getStoragePath())))
                 .toList();
 
         String weightText = null;

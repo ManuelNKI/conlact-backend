@@ -230,7 +230,7 @@ public class ProductImageService {
     }
 
     private ProductImageResponse toResponse(ProductImage image) {
-        String publicUrl = storage.getPublicUrl(productBucket, image.getStoragePath());
+        String publicUrl = (image.getStoragePath().startsWith("https://") || image.getStoragePath().startsWith("http://") || image.getStoragePath().startsWith("/") ? image.getStoragePath() : storage.getPublicUrl(productBucket, image.getStoragePath()));
         return ProductImageResponse.fromEntity(image, publicUrl);
     }
 }

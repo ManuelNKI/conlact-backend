@@ -138,7 +138,7 @@ class FinancialAuditOrderTest {
                 .deliveryMethod("delivery")
                 .shippingZoneId(zoneId)
                 .shippingAddress("Av. Daniel León Borja y Brasil")
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .clientNotes("Favor entregar por la mañana")
                 .items(List.of(
                         OrderCreateRequest.OrderItemRequest.builder().variantId(var1.getId()).quantity(3).build(),
@@ -192,7 +192,7 @@ class FinancialAuditOrderTest {
                         .address("Dirección")
                         .build())
                 .deliveryMethod("pickup")
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .items(List.of(
                         OrderCreateRequest.OrderItemRequest.builder().variantId(var1.getId()).quantity(10).build(),
                         OrderCreateRequest.OrderItemRequest.builder().variantId(var2.getId()).quantity(10).build()
@@ -263,7 +263,7 @@ class FinancialAuditOrderTest {
                 .deliveryMethod("delivery")
                 .shippingZoneId(zoneId)
                 .shippingAddress("Dirección de prueba")
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .items(List.of(
                         OrderCreateRequest.OrderItemRequest.builder().variantId(UUID.randomUUID()).quantity(1).build()
                 ))

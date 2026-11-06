@@ -129,7 +129,7 @@ class OrderServiceTest {
                         .build())
                 .deliveryMethod("delivery")
                 .shippingZoneId(zoneId)
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .clientNotes("Dejar en garita")
                 .items(List.of(
                         OrderCreateRequest.OrderItemRequest.builder()
@@ -147,8 +147,8 @@ class OrderServiceTest {
         assertThat(response.shippingCost()).isEqualByComparingTo("2.50");
         assertThat(response.total()).isEqualByComparingTo("9.00"); // 6.50 + 2.50
         assertThat(response.status()).isEqualTo("pending");
-        assertThat(response.paymentMethod()).isEqualTo("payphone");
-        assertThat(response.payphoneUrl()).contains("payphone.com.ec");
+        assertThat(response.paymentMethod()).isEqualTo("transferencia");
+        assertThat(response.payphoneUrl()).isNull();
         assertThat(response.expiresAt()).isNotNull();
 
         // Verificar que el stock físico de la variante fue descontado de 20 a 18
@@ -216,7 +216,7 @@ class OrderServiceTest {
                         .phone("+593991112233")
                         .build())
                 .deliveryMethod("pickup")
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .items(List.of(
                         OrderCreateRequest.OrderItemRequest.builder()
                                 .variantId(variant.getId())
@@ -243,7 +243,7 @@ class OrderServiceTest {
                         .build())
                 .deliveryMethod("delivery")
                 .shippingZoneId(null) // Falta zona
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .items(List.of())
                 .build();
 
@@ -322,7 +322,7 @@ class OrderServiceTest {
                 .shippingCost(BigDecimal.ZERO)
                 .total(new BigDecimal("6.50"))
                 .deliveryMethod(DeliveryMethod.pickup)
-                .paymentMethod(PaymentMethod.payphone)
+                .paymentMethod(PaymentMethod.bank_transfer)
                 .build();
 
         InventoryReservation reservation = InventoryReservation.builder()
@@ -410,5 +410,13 @@ class OrderServiceTest {
         assertThat(com.conlact.conlact_backend.dto.order.OrderStatusUpdateRequest.parseStatus("ENVIADO")).isEqualTo(OrderStatus.shipped);
         assertThat(com.conlact.conlact_backend.dto.order.OrderStatusUpdateRequest.parseStatus("ENTREGADO")).isEqualTo(OrderStatus.completed);
         assertThat(com.conlact.conlact_backend.dto.order.OrderStatusUpdateRequest.parseStatus("CANCELADO")).isEqualTo(OrderStatus.cancelled);
+    }
+    @Test
+    void rejectsGatewayBeforeReservingInventory() {
+        var request = OrderCreateRequest.builder().deliveryMethod("pickup").paymentMethod("payphone")
+            .customer(OrderCreateRequest.CustomerDto.builder().name("Cliente").build()).build();
+        assertThatThrownBy(() -> orderService.createOrder(request)).isInstanceOf(BadRequestException.class)
+            .hasMessageContaining("transferencia");
+        verifyNoInteractions(productVariantRepository, orderRepository, paymentRepository, inventoryReservationRepository);
     }
 }

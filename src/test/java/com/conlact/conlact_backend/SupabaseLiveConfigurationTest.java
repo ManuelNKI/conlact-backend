@@ -62,11 +62,12 @@ class SupabaseLiveConfigurationTest {
     @Test
     @DisplayName("Supabase Storage Live: Debe subir, obtener URL, descargar y eliminar archivo en product-images")
     void testLiveStorageOperations() {
-        String testPath = "test/connectivity-check.webp";
+        String testPath = "test/connectivity-check-" + java.util.UUID.randomUUID() + ".webp";
         byte[] testBytes = "RIFF\u0000\u0000\u0000\u0000WEBPVP8 \u0000\u0000\u0000\u0000".getBytes(StandardCharsets.ISO_8859_1);
 
         // 1. Subir con un MIME type permitido (image/webp)
         String uploadedPath = storageService.upload("product-images", testPath, testBytes, "image/webp");
+        try {
         assertThat(uploadedPath).isEqualTo(testPath);
 
         // 2. Obtener URL pública
@@ -82,7 +83,9 @@ class SupabaseLiveConfigurationTest {
         assertThat(signedUrl).startsWith("https://");
 
         // 5. Eliminar
-        storageService.delete("product-images", testPath);
+        } finally {
+            storageService.delete("product-images", testPath);
+        }
     }
 
     @Test

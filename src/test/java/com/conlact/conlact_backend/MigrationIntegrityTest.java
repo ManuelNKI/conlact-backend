@@ -42,6 +42,7 @@ class MigrationIntegrityTest {
             // 3. Ejecutar la migración real de Supabase (supabase/migrations/20260928_create_association_images.sql)
             String migrationSql = Files.readString(Path.of("supabase/migrations/20260928_create_association_images.sql"));
             stmt.execute(migrationSql);
+            stmt.execute(Files.readString(Path.of("supabase/migrations/20261105_mvp_content.sql")));
 
             // 4. Verificar que la tabla association_images exista en public
             ResultSet rsTable = stmt.executeQuery("""

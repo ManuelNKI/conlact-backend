@@ -25,6 +25,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: conlact-backend-app
+    env_file:
+      - path: .env
+        required: false
     restart: unless-stopped
     depends_on:
       postgres:

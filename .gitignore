@@ -102,4 +102,5 @@ application-local-secrets.properties
 docker/backups/*.sql
 docker/backups/*.sql.gz
 docker/backups/*.dump
+docker/backups/*.json
 !docker/backups/.gitkeep

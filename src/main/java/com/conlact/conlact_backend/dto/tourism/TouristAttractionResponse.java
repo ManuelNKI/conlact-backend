@@ -19,6 +19,9 @@ public record TouristAttractionResponse(
         @JsonProperty("lng") BigDecimal longitude,
         @JsonProperty("requiere_confirmacion") Boolean requiresConfirmation,
         @JsonProperty("condiciones_acceso") String accessConditions,
+        @JsonProperty("duracion") String duration,
+        @JsonProperty("dificultad") String difficulty,
+        @JsonProperty("video_url") String videoUrl,
         @JsonProperty("foto_url") String photoUrl
 ) {
     public static TouristAttractionResponse fromEntity(TouristAttraction attraction) {
@@ -33,7 +36,8 @@ public record TouristAttractionResponse(
                 .longitude(attraction.getLongitude())
                 .requiresConfirmation(attraction.getRequiresConfirmation())
                 .accessConditions(attraction.getAccessConditions())
-                .photoUrl(null)
+                .photoUrl(attraction.getPhotoUrl()).videoUrl(attraction.getVideoUrl())
+                .duration(attraction.getDuration()).difficulty(attraction.getDifficulty())
                 .build();
     }
 }

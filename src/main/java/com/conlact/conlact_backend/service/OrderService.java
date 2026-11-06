@@ -30,6 +30,9 @@ import java.util.*;
 @RequiredArgsConstructor
 public class OrderService {
 
+    @org.springframework.beans.factory.annotation.Value("${app.orders.reservation-minutes:2880}")
+    private long reservationMinutes = 2880;
+
     private final OrderRepository orderRepository;
     private final ProductVariantRepository productVariantRepository;
     private final ShippingZoneRepository shippingZoneRepository;
@@ -80,7 +83,7 @@ public class OrderService {
         List<OrderItem> orderItems = new ArrayList<>();
         List<InventoryReservation> reservations = new ArrayList<>();
         BigDecimal subtotal = BigDecimal.ZERO;
-        OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(15);
+        OffsetDateTime expiresAt = OffsetDateTime.now().plusMinutes(reservationMinutes);
 
         for (OrderCreateRequest.OrderItemRequest itemReq : request.items()) {
             ProductVariant variant = productVariantRepository.findById(itemReq.variantId())
@@ -219,12 +222,6 @@ public class OrderService {
     }
 
     private OrderCreateResponse toResponse(Order order) {
-        String payphoneUrl = null;
-        if (order.getPaymentMethod() == PaymentMethod.payphone) {
-            String shortId = order.getId().toString().replace("-", "").substring(0, 10);
-            payphoneUrl = "https://pay.payphone.com.ec/pay?id=tx_" + shortId;
-        }
-
         return OrderCreateResponse.builder()
                 .id(order.getId())
                 .orderNumber(order.getOrderNumber())
@@ -233,7 +230,7 @@ public class OrderService {
                 .total(order.getTotal())
                 .status(order.getStatus().name())
                 .paymentMethod(order.getPaymentMethod() == PaymentMethod.payphone ? "payphone" : "transferencia")
-                .payphoneUrl(payphoneUrl)
+                .payphoneUrl(null)
                 .expiresAt(order.getExpiresAt())
                 .build();
     }
@@ -540,13 +537,13 @@ public class OrderService {
 
     private PaymentMethod parsePaymentMethod(String method) {
         if (method == null || method.isBlank()) {
-            throw new BadRequestException("El método de pago es requerido ('payphone' o 'transferencia')");
+            throw new BadRequestException("El método de pago es requerido ('transferencia')");
         }
         String clean = method.trim().toLowerCase();
         return switch (clean) {
-            case "payphone" -> PaymentMethod.payphone;
+
             case "transferencia", "transfer", "bank_transfer" -> PaymentMethod.bank_transfer;
-            default -> throw new BadRequestException("Método de pago desconocido: '" + method + "'. Valores permitidos: 'payphone', 'transferencia'");
+            default -> throw new BadRequestException("Método de pago desconocido: '" + method + "'. Único método permitido: 'transferencia'");
         };
     }
 }

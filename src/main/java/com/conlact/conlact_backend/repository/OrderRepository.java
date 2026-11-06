@@ -3,6 +3,8 @@ package com.conlact.conlact_backend.repository;
 import com.conlact.conlact_backend.entity.Order;
 import com.conlact.conlact_backend.entity.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -12,6 +14,11 @@ import java.util.UUID;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, UUID> {
     Optional<Order> findByOrderNumber(Long orderNumber);
-    List<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status);
+    default List<Order> findByStatusOrderByCreatedAtDesc(OrderStatus status) {
+        return findByStatusValueOrderByCreatedAtDesc(status.name());
+    }
+
+    @Query(value = "SELECT * FROM orders WHERE status = CAST(:status AS order_status) ORDER BY created_at DESC", nativeQuery = true)
+    List<Order> findByStatusValueOrderByCreatedAtDesc(@Param("status") String status);
     List<Order> findAllByOrderByCreatedAtDesc();
 }

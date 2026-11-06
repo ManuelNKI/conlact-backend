@@ -53,6 +53,18 @@ public class TouristAttraction {
     @Builder.Default
     private Boolean isPublished = false;
 
+    @Column(name = "photo_url")
+    private String photoUrl;
+
+    @Column(name = "video_url")
+    private String videoUrl;
+
+    @Column(name = "duration")
+    private String duration;
+
+    @Column(name = "difficulty")
+    private String difficulty;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

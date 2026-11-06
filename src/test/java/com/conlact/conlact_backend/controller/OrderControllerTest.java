@@ -56,7 +56,7 @@ class OrderControllerTest {
                         .build())
                 .deliveryMethod("delivery")
                 .shippingZoneId(UUID.randomUUID())
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .clientNotes("Entregar en garita")
                 .items(List.of(
                         OrderCreateRequest.OrderItemRequest.builder()
@@ -79,8 +79,8 @@ class OrderControllerTest {
                 .shippingCost(new BigDecimal("2.50"))
                 .total(new BigDecimal("15.50"))
                 .status("pending")
-                .paymentMethod("payphone")
-                .payphoneUrl("https://pay.payphone.com.ec/pay?id=tx_9876543")
+                .paymentMethod("transferencia")
+                .payphoneUrl(null)
                 .expiresAt(OffsetDateTime.now().plusMinutes(15))
                 .build();
 
@@ -98,8 +98,8 @@ class OrderControllerTest {
                 .andExpect(jsonPath("$.flete").value(2.50))
                 .andExpect(jsonPath("$.total").value(15.50))
                 .andExpect(jsonPath("$.estado").value("pending"))
-                .andExpect(jsonPath("$.metodo_pago").value("payphone"))
-                .andExpect(jsonPath("$.payphone_url").value("https://pay.payphone.com.ec/pay?id=tx_9876543"));
+                .andExpect(jsonPath("$.metodo_pago").value("transferencia"))
+                .andExpect(jsonPath("$.payphone_url").isEmpty());
 
         mockMvc.perform(post("/api/orders")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -116,7 +116,7 @@ class OrderControllerTest {
                 .orderNumber(10042L)
                 .total(new BigDecimal("15.50"))
                 .status("pending")
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .build();
 
         when(orderService.getOrderByOrderNumber(10042L)).thenReturn(response);
@@ -136,7 +136,7 @@ class OrderControllerTest {
                 .orderNumber(10042L)
                 .total(new BigDecimal("15.50"))
                 .status("pending")
-                .paymentMethod("payphone")
+                .paymentMethod("transferencia")
                 .build();
 
         when(orderService.getOrderById(id)).thenReturn(response);

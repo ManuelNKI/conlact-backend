@@ -229,3 +229,7 @@ La API de testimonios también incluye aprobación, archivo, destacados opcional
 `EmailNotificationService` usa JavaMailSender y plantillas HTML Thymeleaf para contacto y pedidos. El envío corre mediante `@Async` y devuelve un `CompletableFuture` que permite observar fallos. Por defecto está deshabilitado hasta configurar SMTP. Ver [uso, plantillas y configuración](docs/BE24_CORREO.md).
 
 El formulario de contacto ya invoca el servicio después de guardar el mensaje. Sus notificaciones se dirigen a `MAIL_ADMIN_RECIPIENT`, o a `MAIL_FROM` cuando no se configura un destinatario aparte.
+
+## MVP de transferencias y contenidos
+
+Antes de ejecutar esta versión sobre una base existente, aplicar `supabase/migrations/20261105_mvp_content.sql`. El flujo operativo y la configuración se documentan en `../Conlac_T_FrontEnd/docs/MVP-transferencias.md`.

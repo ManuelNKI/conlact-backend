@@ -29,7 +29,7 @@ public record OrderCreateRequest(
         @JsonProperty("direccion_entrega")
         String shippingAddress,
 
-        @NotBlank(message = "El método de pago es requerido ('payphone' o 'transferencia')")
+        @NotBlank(message = "El método de pago es requerido ('transferencia')")
         @JsonProperty("metodo_pago")
         String paymentMethod,
 

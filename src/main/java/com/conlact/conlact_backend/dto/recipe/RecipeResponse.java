@@ -21,6 +21,9 @@ public record RecipeResponse(
         @JsonProperty("ingredientes") List<Map<String, Object>> ingredients,
         @JsonProperty("pasos") List<Map<String, Object>> steps,
         @JsonProperty("imagen_url") String imageUrl,
+        @JsonProperty("video_url") String videoUrl,
+        @JsonProperty("tipo_queso") String cheeseType,
+        @JsonProperty("orden") Integer displayOrder,
         @JsonProperty("is_published") Boolean isPublished
 ) {
     public static RecipeResponse fromEntity(Recipe recipe, String publicImageUrl) {
@@ -34,6 +37,7 @@ public record RecipeResponse(
                 .ingredients(recipe.getIngredients())
                 .steps(recipe.getSteps())
                 .imageUrl(publicImageUrl != null ? publicImageUrl : recipe.getImageStoragePath())
+                .videoUrl(recipe.getVideoUrl()).cheeseType(recipe.getCheeseType()).displayOrder(recipe.getDisplayOrder())
                 .isPublished(recipe.getIsPublished())
                 .build();
     }

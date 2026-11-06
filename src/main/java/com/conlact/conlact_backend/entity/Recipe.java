@@ -65,6 +65,16 @@ public class Recipe {
     @Builder.Default
     private Set<Product> products = new HashSet<>();
 
+    @Column(name = "video_url")
+    private String videoUrl;
+
+    @Column(name = "cheese_type")
+    private String cheeseType;
+
+    @Column(name = "display_order")
+    @Builder.Default
+    private Integer displayOrder = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;

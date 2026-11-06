@@ -64,6 +64,21 @@ class SupabaseStorageServiceTest {
     }
 
     @Test
+    void sendsOpaqueSecretKeyOnlyInApiKeyHeader() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer secretServer = MockRestServiceServer.bindTo(builder).build();
+        SupabaseStorageService secretStorage = new SupabaseStorageService(
+                SUPABASE_URL, "sb_secret_test-key", PRODUCT_BUCKET, RECIPE_BUCKET, PAYMENT_BUCKET, builder);
+        secretServer.expect(requestTo(SUPABASE_URL + "/storage/v1/object/product-images/test.png"))
+                .andExpect(header("apikey", "sb_secret_test-key"))
+                .andExpect(headerDoesNotExist(HttpHeaders.AUTHORIZATION))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess());
+        secretStorage.upload(PRODUCT_BUCKET, "test.png", new byte[]{1, 2, 3}, "image/png");
+        secretServer.verify();
+    }
+
+    @Test
     @DisplayName("upload() con ruta que inicia con '/' debe sanear la ruta correctamente")
     void shouldUploadFileWithLeadingSlashSanitized() {
         byte[] payload = "dummy bytes".getBytes(StandardCharsets.UTF_8);
