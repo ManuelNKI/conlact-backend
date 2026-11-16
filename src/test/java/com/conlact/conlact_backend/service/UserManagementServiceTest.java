@@ -33,11 +33,14 @@ class UserManagementServiceTest {
     @Mock
     private ProfileRepository profileRepository;
 
+    @Mock
+    private AuthIdentityService authIdentityService;
+
     private UserManagementService service;
 
     @BeforeEach
     void setUp() {
-        service = new UserManagementService(profileRepository, "", "");
+        service = new UserManagementService(profileRepository, "", "", authIdentityService);
     }
 
     @Test
@@ -174,5 +177,33 @@ class UserManagementServiceTest {
         assertThatThrownBy(() -> service.deleteUser(otherAdminId, actorId))
                 .isInstanceOf(ConflictException.class)
                 .hasMessageContaining("Debe permanecer al menos un administrador activo");
+    }
+
+    @Test
+    @DisplayName("Actualizar: cambiar rol o estado revoca sesiones y retos")
+    void shouldRevokeSessionsWhenRoleOrStatusChanges() {
+        UUID actorId = UUID.randomUUID();
+        UUID editorId = UUID.randomUUID();
+        Profile editor = Profile.builder().id(editorId).fullName("Editor").role(UserRole.editor).isActive(true).build();
+        when(profileRepository.findByIdForUpdate(editorId)).thenReturn(Optional.of(editor));
+        when(profileRepository.save(any(Profile.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateUser(editorId, new UpdateUserRequest(null, null, false), actorId);
+
+        verify(authIdentityService).revokeSessionsAndChallenges(editorId);
+    }
+
+    @Test
+    @DisplayName("Actualizar: un cambio de nombre no revoca la sesión")
+    void shouldNotRevokeSessionsWhenOnlyNameChanges() {
+        UUID actorId = UUID.randomUUID();
+        UUID editorId = UUID.randomUUID();
+        Profile editor = Profile.builder().id(editorId).fullName("Editor").role(UserRole.editor).isActive(true).build();
+        when(profileRepository.findByIdForUpdate(editorId)).thenReturn(Optional.of(editor));
+        when(profileRepository.save(any(Profile.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.updateUser(editorId, new UpdateUserRequest("Editor principal", null, null), actorId);
+
+        verify(authIdentityService, never()).revokeSessionsAndChallenges(any());
     }
 }

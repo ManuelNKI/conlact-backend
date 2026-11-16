@@ -7,7 +7,7 @@ public record SessionResponse(
         @JsonProperty("session") SessionData session
 ) {
     public record SessionData(
-            StaffUserResponse user,
+            SessionAccount user,
             StaffUserResponse profile
     ) {}
 }

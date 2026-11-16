@@ -537,7 +537,7 @@ create table if not exists public.password_reset_challenges (
     request_id varchar(64) not null unique,
     user_id uuid,
     email varchar(254) not null,
-    code varchar(6) not null,
+    code varchar(64) not null,
     attempts integer not null default 0,
     max_attempts integer not null default 5,
     reset_token varchar(64) unique,
@@ -548,13 +548,17 @@ create table if not exists public.password_reset_challenges (
     created_at timestamptz not null default now()
 );
 
+create index if not exists idx_reset_challenges_req on public.password_reset_challenges(request_id);
+create index if not exists idx_reset_challenges_token on public.password_reset_challenges(reset_token);
+create index if not exists idx_reset_challenges_email on public.password_reset_challenges(email);
+
 create table if not exists public.email_change_challenges (
     id uuid primary key default gen_random_uuid(),
     request_id varchar(64) not null unique,
     user_id uuid not null,
     current_email varchar(254) not null,
     new_email varchar(254) not null,
-    code varchar(6) not null,
+    code varchar(64) not null,
     attempts integer not null default 0,
     max_attempts integer not null default 5,
     is_consumed boolean not null default false,
@@ -563,6 +567,32 @@ create table if not exists public.email_change_challenges (
     created_at timestamptz not null default now()
 );
 
+create index if not exists idx_email_challenges_req on public.email_change_challenges(request_id);
+create index if not exists idx_email_challenges_user on public.email_change_challenges(user_id);
+
+create table if not exists public.auth_sessions (
+    id uuid primary key default gen_random_uuid(),
+    token_hash varchar(64) not null unique,
+    user_id uuid not null,
+    expires_at timestamptz not null,
+    created_at timestamptz not null default now()
+);
+
+create index if not exists idx_auth_sessions_user on public.auth_sessions(user_id);
+
+create table if not exists public.auth_rate_limits (
+    id uuid primary key default gen_random_uuid(),
+    scope varchar(48) not null,
+    key_hash varchar(64) not null,
+    window_start timestamptz not null,
+    hits integer not null,
+    constraint uq_auth_rate_scope_key unique (scope, key_hash)
+);
+
+alter table public.password_reset_challenges enable row level security;
+alter table public.email_change_challenges enable row level security;
+alter table public.auth_sessions enable row level security;
+alter table public.auth_rate_limits enable row level security;
 alter table public.contact_messages enable row level security;
 alter table public.audit_log enable row level security;
 alter table public.email_outbox enable row level security;

@@ -22,7 +22,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping({"/api/admin/productos", "/api/admin/products"})
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
 @RequiredArgsConstructor
 public class AdminProductController {
     private final AdminProductService adminProductService;

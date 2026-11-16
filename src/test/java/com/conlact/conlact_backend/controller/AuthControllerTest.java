@@ -2,6 +2,8 @@ package com.conlact.conlact_backend.controller;
 
 import com.conlact.conlact_backend.dto.auth.EmailChangeActionRequest;
 import com.conlact.conlact_backend.dto.auth.PasswordRecoveryRequest;
+import com.conlact.conlact_backend.dto.auth.EmailChangeResult;
+import com.conlact.conlact_backend.dto.auth.SessionAccount;
 import com.conlact.conlact_backend.dto.auth.SessionResponse;
 import com.conlact.conlact_backend.dto.user.StaffUserResponse;
 import com.conlact.conlact_backend.exception.GlobalExceptionHandler;
@@ -80,7 +82,7 @@ class AuthControllerTest {
     void testRecuperarPassword_Request() throws Exception {
         PasswordRecoveryRequest request = new PasswordRecoveryRequest("request", "heydi@conlact.ec", null, null, null, null);
 
-        when(authIdentityService.requestPasswordReset("heydi@conlact.ec")).thenReturn(Map.of(
+        when(authIdentityService.requestPasswordReset(eq("heydi@conlact.ec"), any())).thenReturn(Map.of(
                 "success", true,
                 "message", "Si existe una cuenta con ese correo, recibirás un código de recuperación.",
                 "requestId", "req-xyz-123",
@@ -152,14 +154,19 @@ class AuthControllerTest {
     void testCambiarCorreo_Verify() throws Exception {
         EmailChangeActionRequest request = new EmailChangeActionRequest("verify", null, null, "req-email-123", "654321");
 
-        StaffUserResponse updated = StaffUserResponse.builder()
-                .id(authenticatedUserId)
-                .fullName("Heydi")
-                .email("nuevo@conlact.ec")
-                .role("admin")
-                .isActive(true)
-                .createdAt(OffsetDateTime.now())
-                .build();
+        EmailChangeResult updated = new EmailChangeResult(
+                new SessionAccount(authenticatedUserId, "nuevo@conlact.ec", "authenticated", "authenticated",
+                        OffsetDateTime.now(), Map.of("role", "admin"), Map.of("full_name", "Heydi")),
+                StaffUserResponse.builder()
+                        .id(authenticatedUserId)
+                        .fullName("Heydi")
+                        .email("nuevo@conlact.ec")
+                        .role("admin")
+                        .isActive(true)
+                        .createdAt(OffsetDateTime.now())
+                        .build(),
+                "session-token"
+        );
 
         when(authIdentityService.verifyEmailChange(eq(authenticatedUserId), eq("req-email-123"), eq("654321")))
                 .thenReturn(updated);
@@ -175,7 +182,7 @@ class AuthControllerTest {
     @Test
     @DisplayName("Sesión: GET /api/auth/session retorna perfil con no-store")
     void testGetSession() throws Exception {
-        StaffUserResponse user = StaffUserResponse.builder()
+        StaffUserResponse profile = StaffUserResponse.builder()
                 .id(authenticatedUserId)
                 .fullName("Heydi")
                 .email("auth@conlact.ec")
@@ -183,9 +190,13 @@ class AuthControllerTest {
                 .isActive(true)
                 .createdAt(OffsetDateTime.now())
                 .build();
+        SessionAccount user = new SessionAccount(
+                authenticatedUserId, "auth@conlact.ec", "authenticated", "authenticated",
+                profile.createdAt(), Map.of("role", "admin"), Map.of("full_name", "Heydi")
+        );
 
         when(authIdentityService.getSession(any())).thenReturn(
-                new SessionResponse(new SessionResponse.SessionData(user, user))
+                new SessionResponse(new SessionResponse.SessionData(user, profile))
         );
 
         mockMvc.perform(get("/api/auth/session"))

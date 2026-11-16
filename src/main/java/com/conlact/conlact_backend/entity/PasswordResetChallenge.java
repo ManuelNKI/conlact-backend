@@ -30,7 +30,8 @@ public class PasswordResetChallenge {
     @Column(name = "email", nullable = false, length = 254)
     private String email;
 
-    @Column(name = "code", nullable = false, length = 6)
+    /** SHA-256 hexadecimal del código de seis dígitos. Nunca el código en claro. */
+    @Column(name = "code", nullable = false, length = 64)
     private String code;
 
     @Column(name = "attempts", nullable = false)

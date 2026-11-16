@@ -29,6 +29,7 @@ import java.util.UUID;
 public class UserManagementService {
 
     private final ProfileRepository profileRepository;
+    private final AuthIdentityService authIdentityService;
     private final RestClient restClient;
     private final String supabaseUrl;
     private final String serviceRoleKey;
@@ -37,9 +38,11 @@ public class UserManagementService {
     public UserManagementService(
             ProfileRepository profileRepository,
             @Value("${app.supabase.url:}") String supabaseUrl,
-            @Value("${app.supabase.service-role-key:}") String serviceRoleKey
+            @Value("${app.supabase.service-role-key:}") String serviceRoleKey,
+            AuthIdentityService authIdentityService
     ) {
         this.profileRepository = profileRepository;
+        this.authIdentityService = authIdentityService;
         this.supabaseUrl = (supabaseUrl != null && !supabaseUrl.isBlank()) ? supabaseUrl.replaceAll("/+$", "") : "";
         this.serviceRoleKey = (serviceRoleKey != null && !serviceRoleKey.isBlank()) ? serviceRoleKey.trim() : "";
         this.objectMapper = new ObjectMapper();
@@ -154,6 +157,7 @@ public class UserManagementService {
         }
 
         boolean newActive = request.isActive() != null ? request.isActive() : Boolean.TRUE.equals(target.getIsActive());
+        boolean accessChanged = newRole != target.getRole() || newActive != Boolean.TRUE.equals(target.getIsActive());
 
         // Reglas de protección de la propia cuenta y del último admin
         protectAccountAndLastAdmin(actorId, target, newRole, newActive, false);
@@ -163,10 +167,11 @@ public class UserManagementService {
         target.setIsActive(newActive);
 
         Profile updated = profileRepository.save(target);
+        if (accessChanged) {
+            authIdentityService.revokeSessionsAndChallenges(id);
+        }
         log.info("Usuario del equipo {} actualizado por actor {}: rol={}, activo={}",
                 id, actorId, newRole, newActive);
-
-        // TODO (coordinación con Heydi): Invocar revocación de sesiones/retos al mutar rol o estado
 
         return StaffUserResponse.fromEntity(updated);
     }
@@ -179,6 +184,7 @@ public class UserManagementService {
         protectAccountAndLastAdmin(actorId, target, target.getRole(), Boolean.TRUE.equals(target.getIsActive()), true);
 
         profileRepository.delete(target);
+        authIdentityService.revokeSessionsAndChallenges(id);
         log.info("Usuario del equipo {} eliminado por actor {}", id, actorId);
 
         // Intentar eliminar también de Supabase Auth si está configurado
@@ -194,8 +200,6 @@ public class UserManagementService {
                 log.warn("No se pudo eliminar el usuario {} de Supabase Auth: {}", id, ex.getMessage());
             }
         }
-
-        // TODO (coordinación con Heydi): Invocar revocación de sesiones y retos
     }
 
     private void protectAccountAndLastAdmin(UUID actorId, Profile target, UserRole newRole, boolean newActive, boolean deleting) {

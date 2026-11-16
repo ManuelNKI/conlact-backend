@@ -34,7 +34,7 @@ public class AssociationImageController {
      * Registra una nueva URL de foto para una asociación (Requiere rol ADMIN).
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
     public ResponseEntity<AssociationImageItemResponse> createImage(
             @PathVariable UUID associationId,
             @Valid @RequestBody CreateAssociationImageRequest request
@@ -48,7 +48,7 @@ public class AssociationImageController {
      * Actualiza metadatos, URL, tipo u orden de una fotografía (Requiere rol ADMIN).
      */
     @PatchMapping("/{imageId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
     public ResponseEntity<AssociationImageItemResponse> updateImage(
             @PathVariable UUID associationId,
             @PathVariable UUID imageId,
@@ -63,7 +63,7 @@ public class AssociationImageController {
      * Desvincula una fotografía de la asociación (Requiere rol ADMIN).
      */
     @DeleteMapping("/{imageId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
     public ResponseEntity<Void> deleteImage(
             @PathVariable UUID associationId,
             @PathVariable UUID imageId
@@ -77,7 +77,7 @@ public class AssociationImageController {
      * Reordena transaccionalmente varias fotografías de la galería (Requiere rol ADMIN).
      */
     @PatchMapping("/orden")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
     public ResponseEntity<AssociationGalleryResponse> reorderImages(
             @PathVariable UUID associationId,
             @Valid @RequestBody ReorderAssociationImagesRequest request
