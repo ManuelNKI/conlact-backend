@@ -84,7 +84,7 @@ class ContactControllerTest {
                 null,
                 "General Inquiry",
                 "I would like more information about your dairy products.",
-                false
+                true
         );
 
         mockMvc.perform(post("/api/contact")

@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -83,6 +84,27 @@ public class AssociationCreateRequest {
     @Size(max = 50, message = "El número de WhatsApp no puede exceder 50 caracteres")
     @JsonProperty("whatsapp")
     private String whatsapp;
+
+    @JsonProperty("parroquia")
+    private String parish;
+
+    @JsonProperty("miembros")
+    private Integer members;
+
+    @JsonProperty("altitud_msnm")
+    private Integer altitudeMsnm;
+
+    @JsonProperty("numero_familias")
+    private Integer numberOfFamilies;
+
+    @JsonProperty("horario_atencion")
+    private String businessHours;
+
+    @JsonProperty("registro_bpm")
+    private String bpmRegistration;
+
+    @JsonProperty("campos_ficha")
+    private List<Map<String, Object>> customFields;
 
     @JsonProperty("is_published")
     @Builder.Default

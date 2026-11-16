@@ -39,6 +39,18 @@ public class TouristAttraction {
     @Column(name = "access_conditions", columnDefinition = "text")
     private String accessConditions;
 
+    @Column(name = "duration")
+    private String duration;
+
+    @Column(name = "difficulty")
+    private String difficulty;
+
+    @Column(name = "image_url")
+    private String imageUrl;
+
+    @Column(name = "video_url")
+    private String videoUrl;
+
     @Column(name = "latitude", precision = 9, scale = 6)
     private BigDecimal latitude;
 

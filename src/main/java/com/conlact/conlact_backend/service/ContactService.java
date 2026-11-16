@@ -32,6 +32,12 @@ public class ContactService {
      */
     @Transactional
     public ContactMessageResponse processContactMessage(ContactMessageCreateRequest request) {
+        // Antispam bot trap: Honeypot check
+        if (request.honeypot() != null && !request.honeypot().isBlank()) {
+            log.warn("Mensaje de contacto rechazado silenciosamente por detección de bot (honeypot detectado)");
+            return ContactMessageResponse.received(UUID.randomUUID());
+        }
+
         String cleanName = request.name().trim();
         String cleanEmail = request.email().trim().toLowerCase();
         String cleanPhone = (request.phone() != null && !request.phone().isBlank()) ? request.phone().trim() : null;

@@ -3,10 +3,15 @@ package com.conlact.conlact_backend.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Entity
@@ -67,6 +72,29 @@ public class Association {
 
     @Column(name = "whatsapp")
     private String whatsapp;
+
+    @Column(name = "parish")
+    private String parish;
+
+    @Column(name = "members")
+    private Integer members;
+
+    @Column(name = "altitude_msnm")
+    private Integer altitudeMsnm;
+
+    @Column(name = "number_of_families")
+    private Integer numberOfFamilies;
+
+    @Column(name = "business_hours")
+    private String businessHours;
+
+    @Column(name = "bpm_registration")
+    private String bpmRegistration;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "fields_json", columnDefinition = "jsonb")
+    @Builder.Default
+    private List<Map<String, Object>> fieldsJson = new ArrayList<>();
 
     @Column(name = "is_published", nullable = false)
     @Builder.Default

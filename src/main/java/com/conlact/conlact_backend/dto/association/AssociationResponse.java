@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Getter
@@ -94,6 +95,16 @@ public class AssociationResponse {
 
     @JsonProperty("horario_atencion")
     private String businessHours;
+
+    @JsonProperty("parroquia")
+    private String parish;
+
+    @JsonProperty("miembros")
+    private Integer members;
+
+    @JsonProperty("campos_ficha")
+    @Builder.Default
+    private List<Map<String, Object>> customFields = Collections.emptyList();
 
     @JsonProperty("productos_ids")
     @Builder.Default
