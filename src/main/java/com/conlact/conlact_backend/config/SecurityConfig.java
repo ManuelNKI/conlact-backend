@@ -61,15 +61,16 @@ public class SecurityConfig {
                         // Autenticación pública (Login)
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
 
-                        // Endpoints públicos del frontend (Tienda, Asociaciones, Recetas, Turismo, Testimonios)
+                        // Endpoints públicos del frontend (Tienda, Asociaciones, Recetas, Turismo, Testimonios, Páginas CMS, Capacitación)
                         .requestMatchers(HttpMethod.GET, "/api/associations/**", "/api/asociaciones/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**", "/api/categorias/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/productos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/recipes/**", "/api/recetas/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/recipes/**", "/api/recipes/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/tourism/**", "/api/turismo/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/testimonials/**", "/api/testimonios/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shipping-zones/**", "/api/zonas-envio/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/paginas/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/capacitacion/**").permitAll()
 
                         // Checkout y Formulario de Contacto (Públicos para clientes finales)
                         .requestMatchers(HttpMethod.POST, "/api/orders", "/api/pedidos").permitAll()

@@ -1,6 +1,7 @@
 package com.conlact.conlact_backend.dto.contact;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -13,7 +14,7 @@ public record ContactMessageCreateRequest(
 
         @NotBlank(message = "El correo electrónico es obligatorio")
         @Email(message = "El formato del correo electrónico no es válido")
-        @Size(max = 255, message = "El correo electrónico no puede superar los 255 caracteres")
+        @Size(max = 254, message = "El correo electrónico no puede superar los 254 caracteres")
         @JsonProperty("email")
         String email,
 
@@ -31,7 +32,14 @@ public record ContactMessageCreateRequest(
         @JsonProperty("mensaje")
         String message,
 
+        @AssertTrue(message = "Debe aceptar la política de privacidad para enviar el mensaje")
         @JsonProperty("privacy_accepted")
-        Boolean privacyAccepted
+        Boolean privacyAccepted,
+
+        @JsonProperty("hp_field")
+        String honeypot
 ) {
+    public ContactMessageCreateRequest(String name, String email, String phone, String subject, String message, Boolean privacyAccepted) {
+        this(name, email, phone, subject, message, privacyAccepted, null);
+    }
 }

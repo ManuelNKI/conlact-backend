@@ -133,7 +133,7 @@ public class ContactIntegrationTest extends BaseIntegrationTest {
                 null,
                 "Wholesale Inquiry",
                 "Requesting catalog and price list.",
-                false
+                true
         );
 
         var response2 = restClient.post()

@@ -52,6 +52,19 @@ public class Recipe {
     @Column(name = "image_storage_path")
     private String imageStoragePath;
 
+    @Column(name = "video_url")
+    private String videoUrl;
+
+    @Column(name = "cheese_type")
+    private String cheeseType;
+
+    @Column(name = "gradient")
+    private String gradient;
+
+    @Column(name = "sort_order", nullable = false)
+    @Builder.Default
+    private Integer sortOrder = 0;
+
     @Column(name = "is_published", nullable = false)
     @Builder.Default
     private Boolean isPublished = false;

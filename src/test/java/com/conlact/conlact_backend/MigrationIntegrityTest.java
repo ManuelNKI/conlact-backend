@@ -72,6 +72,29 @@ class MigrationIntegrityTest {
             """);
             assertThat(rsRls.next()).isTrue();
             assertThat(rsRls.getBoolean("rowsecurity")).isTrue();
+
+            // 8. Ejecutar la migración de CMS, capacitación y extensiones editoriales
+            String cmsSql = Files.readString(Path.of("supabase/migrations/20261115_cms_and_editorial_content.sql"));
+            stmt.execute(cmsSql);
+
+            // Verificar tablas page_contents, capacitacion_secciones, capacitacion_contenidos
+            ResultSet rsPageContents = stmt.executeQuery("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'page_contents'
+            """);
+            assertThat(rsPageContents.next()).isTrue();
+
+            ResultSet rsTrainingSections = stmt.executeQuery("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'capacitacion_secciones'
+            """);
+            assertThat(rsTrainingSections.next()).isTrue();
+
+            ResultSet rsTrainingContents = stmt.executeQuery("""
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'capacitacion_contenidos'
+            """);
+            assertThat(rsTrainingContents.next()).isTrue();
         }
     }
 }

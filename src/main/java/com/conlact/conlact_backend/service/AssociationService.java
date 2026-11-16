@@ -113,6 +113,13 @@ public class AssociationService {
                 .tiktokUrl(request.getTiktokUrl())
                 .facebookUrl(request.getFacebookUrl())
                 .whatsapp(request.getWhatsapp())
+                .parish(request.getParish())
+                .members(request.getMembers())
+                .altitudeMsnm(request.getAltitudeMsnm())
+                .numberOfFamilies(request.getNumberOfFamilies())
+                .businessHours(request.getBusinessHours())
+                .bpmRegistration(request.getBpmRegistration())
+                .fieldsJson(request.getCustomFields() != null ? request.getCustomFields() : Collections.emptyList())
                 .isPublished(request.getIsPublished() != null ? request.getIsPublished() : true)
                 .build();
 
@@ -147,6 +154,27 @@ public class AssociationService {
         association.setTiktokUrl(request.getTiktokUrl());
         association.setFacebookUrl(request.getFacebookUrl());
         association.setWhatsapp(request.getWhatsapp());
+        if (request.getParish() != null) {
+            association.setParish(request.getParish());
+        }
+        if (request.getMembers() != null) {
+            association.setMembers(request.getMembers());
+        }
+        if (request.getAltitudeMsnm() != null) {
+            association.setAltitudeMsnm(request.getAltitudeMsnm());
+        }
+        if (request.getNumberOfFamilies() != null) {
+            association.setNumberOfFamilies(request.getNumberOfFamilies());
+        }
+        if (request.getBusinessHours() != null) {
+            association.setBusinessHours(request.getBusinessHours());
+        }
+        if (request.getBpmRegistration() != null) {
+            association.setBpmRegistration(request.getBpmRegistration());
+        }
+        if (request.getCustomFields() != null) {
+            association.setFieldsJson(request.getCustomFields());
+        }
 
         if (request.getIsPublished() != null) {
             association.setIsPublished(request.getIsPublished());
@@ -241,11 +269,17 @@ public class AssociationService {
                 .arcsaRegistration(association.getArcsaRegistration())
                 .arcsaSeal(association.getArcsaRegistration())
                 .agrocalidadRegistration(association.getAgrocalidadRegistration())
-                .bpmRegistration(association.getAgrocalidadRegistration())
+                .bpmRegistration(association.getBpmRegistration() != null ? association.getBpmRegistration() : association.getAgrocalidadRegistration())
                 .latitude(association.getLatitude())
                 .longitude(association.getLongitude())
                 .whatsapp(association.getWhatsapp())
                 .associationContact(association.getWhatsapp())
+                .parish(association.getParish())
+                .members(association.getMembers())
+                .altitudeMsnm(association.getAltitudeMsnm())
+                .numberOfFamilies(association.getNumberOfFamilies())
+                .businessHours(association.getBusinessHours())
+                .customFields(association.getFieldsJson() != null ? association.getFieldsJson() : Collections.emptyList())
                 .instagramUrl(association.getInstagramUrl())
                 .tiktokUrl(association.getTiktokUrl())
                 .facebookUrl(association.getFacebookUrl())
