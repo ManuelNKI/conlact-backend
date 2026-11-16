@@ -26,6 +26,9 @@ public class Profile {
     @Column(name = "full_name", nullable = false)
     private String fullName;
 
+    @Column(name = "email", length = 254)
+    private String email;
+
     @Enumerated(EnumType.STRING)
     @ColumnTransformer(write = "?::user_role")
     @Column(name = "role", nullable = false, columnDefinition = "user_role")

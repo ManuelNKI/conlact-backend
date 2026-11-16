@@ -186,4 +186,62 @@ class EmailNotificationServiceTest {
                 .get(3, TimeUnit.SECONDS)).hasRootCauseInstanceOf(EmailDeliveryException.class);
         verify(sender, never()).send(any(MimeMessage.class));
     }
+
+    @Test
+    @DisplayName("OTP: Envío síncrono de código de recuperación de 6 dígitos exitoso")
+    void shouldSendPasswordResetOtpWithSixDigitsSuccessfully() throws Exception {
+        AtomicReference<MimeMessage> sent = new AtomicReference<>();
+        doAnswer(invocation -> {
+            sent.set(invocation.getArgument(0));
+            return null;
+        }).when(sender).send(any(MimeMessage.class));
+
+        emails.sendOtpCode("usuario@example.com", "David Barragán", "123456", EmailTemplate.PASSWORD_RESET_CODE);
+
+        assertThat(sent.get()).isNotNull();
+        assertThat(sent.get().getAllRecipients()[0].toString()).isEqualTo("usuario@example.com");
+        assertThat(sent.get().getSubject()).isEqualTo("[CONLAC-T] Código de recuperación de contraseña");
+        assertThat(sent.get().getContent().toString()).contains("123456", "David Barragán");
+    }
+
+    @Test
+    @DisplayName("OTP: Envío síncrono de verificación de cambio de correo con 6 dígitos")
+    void shouldSendEmailChangeOtpWithSixDigitsSuccessfully() throws Exception {
+        AtomicReference<MimeMessage> sent = new AtomicReference<>();
+        doAnswer(invocation -> {
+            sent.set(invocation.getArgument(0));
+            return null;
+        }).when(sender).send(any(MimeMessage.class));
+
+        emails.sendOtpCode("nuevo@example.com", "David Barragán", "654321", EmailTemplate.EMAIL_CHANGE_CODE);
+
+        assertThat(sent.get()).isNotNull();
+        assertThat(sent.get().getAllRecipients()[0].toString()).isEqualTo("nuevo@example.com");
+        assertThat(sent.get().getSubject()).isEqualTo("[CONLAC-T] Código de verificación de correo");
+        assertThat(sent.get().getContent().toString()).contains("654321", "nuevo@example.com");
+    }
+
+    @Test
+    @DisplayName("OTP: Rechazar códigos que no tengan exactamente 6 dígitos")
+    void shouldRejectNonSixDigitOtpCode() {
+        assertThatThrownBy(() -> emails.sendOtpCode("usuario@example.com", "David", "12345", EmailTemplate.PASSWORD_RESET_CODE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("6 dígitos");
+
+        assertThatThrownBy(() -> emails.sendOtpCode("usuario@example.com", "David", "1234567", EmailTemplate.PASSWORD_RESET_CODE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("6 dígitos");
+
+        assertThatThrownBy(() -> emails.sendOtpCode("usuario@example.com", "David", "abc123", EmailTemplate.PASSWORD_RESET_CODE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("6 dígitos");
+    }
+
+    @Test
+    @DisplayName("OTP: Lanzar EmailDeliveryException cuando el correo está deshabilitado")
+    void shouldThrowEmailDeliveryExceptionWhenDisabled() {
+        assertThatThrownBy(() -> disabledEmails.sendOtpCode("usuario@example.com", "David", "123456", EmailTemplate.PASSWORD_RESET_CODE))
+                .isInstanceOf(EmailDeliveryException.class)
+                .hasMessageContaining("deshabilitado");
+    }
 }
