@@ -25,7 +25,8 @@ create table if not exists auth.users (
 -- 1. Tipos enumerados
 -- ------------------------------------------------------------
 create type public.user_role as enum (
-    'admin'
+    'admin',
+    'editor'
 );
 create type public.product_status as enum (
     'draft',
@@ -82,6 +83,7 @@ $$;
 create table public.profiles (
     id uuid primary key references auth.users(id) on delete cascade,
     full_name text not null,
+    email text,
     role public.user_role not null default 'admin',
     is_active boolean not null default true,
     created_at timestamptz not null default now(),
@@ -946,5 +948,27 @@ insert into public.testimonials (
     true
 )
 on conflict do nothing;
+
+-- ------------------------------------------------------------
+-- 20. Outbox de correos transaccionales (David Barragán)
+-- ------------------------------------------------------------
+create table if not exists public.email_outbox (
+    id uuid primary key default gen_random_uuid(),
+    recipient varchar(254) not null,
+    subject varchar(500) not null,
+    template varchar(50) not null,
+    template_variables jsonb not null default '{}'::jsonb,
+    idempotency_key varchar(100),
+    status varchar(20) not null default 'PENDING',
+    retry_count integer not null default 0,
+    max_retries integer not null default 3,
+    created_at timestamptz not null default now(),
+    next_retry_at timestamptz,
+    sent_at timestamptz,
+    last_error text,
+    constraint uq_email_outbox_idempotency unique (idempotency_key)
+);
+
+create index if not exists idx_email_outbox_pending on public.email_outbox(status, next_retry_at) where status = 'PENDING';
 
 commit;

@@ -9,6 +9,7 @@ import com.conlact.conlact_backend.email.IEmailService;
 import com.conlact.conlact_backend.email.TemplatedEmail;
 import com.conlact.conlact_backend.entity.*;
 import com.conlact.conlact_backend.entity.enums.*;
+import com.conlact.conlact_backend.event.OrderEmailEvent;
 import com.conlact.conlact_backend.exception.BadRequestException;
 import com.conlact.conlact_backend.exception.InsufficientStockException;
 import com.conlact.conlact_backend.exception.ResourceNotFoundException;
@@ -18,6 +19,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +39,9 @@ public class OrderService {
     private final PaymentRepository paymentRepository;
     private final AuditLogRepository auditLogRepository;
     private final IEmailService emailService;
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ApplicationEventPublisher eventPublisher;
 
     @PersistenceContext
     private final EntityManager entityManager;
@@ -187,6 +192,20 @@ public class OrderService {
 
         log.info("Pedido registrado con éxito. ID: {}, Número: {}, Total: {}",
                 savedOrder.getId(), savedOrder.getOrderNumber(), savedOrder.getTotal());
+
+        if (eventPublisher != null && savedOrder.getCustomerEmail() != null && !savedOrder.getCustomerEmail().isBlank()) {
+            eventPublisher.publishEvent(new OrderEmailEvent(
+                    this,
+                    savedOrder.getId(),
+                    savedOrder.getCustomerEmail(),
+                    savedOrder.getCustomerName(),
+                    String.valueOf(savedOrder.getOrderNumber()),
+                    String.valueOf(savedOrder.getTotal()),
+                    savedOrder.getStatus().name(),
+                    null,
+                    true
+            ));
+        }
 
         return toResponse(savedOrder);
     }
@@ -367,7 +386,24 @@ public class OrderService {
     }
 
     private void sendStatusChangeEmailIfPossible(Order order, OrderStatus newStatus) {
-        if (order.getCustomerEmail() == null || order.getCustomerEmail().isBlank() || emailService == null) {
+        if (order.getCustomerEmail() == null || order.getCustomerEmail().isBlank()) {
+            return;
+        }
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(new OrderEmailEvent(
+                    this,
+                    order.getId(),
+                    order.getCustomerEmail(),
+                    order.getCustomerName(),
+                    String.valueOf(order.getOrderNumber()),
+                    String.valueOf(order.getTotal()),
+                    newStatus.name(),
+                    null,
+                    false
+            ));
+            return;
+        }
+        if (emailService == null) {
             return;
         }
         try {

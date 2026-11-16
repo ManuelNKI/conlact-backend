@@ -6,7 +6,9 @@ public enum EmailTemplate {
     NOTIFICATION("email/notification", "title", "message"),
     CONTACT_NOTIFICATION("email/contact-notification", "contactName", "contactEmail", "message"),
     ORDER_RECEIVED("email/order-received", "customerName", "orderNumber", "total"),
-    ORDER_STATUS("email/order-status", "customerName", "orderNumber", "status");
+    ORDER_STATUS("email/order-status", "customerName", "orderNumber", "status"),
+    PASSWORD_RESET_CODE("email/password-reset-code", "userName", "resetCode", "expirationMinutes"),
+    EMAIL_CHANGE_CODE("email/email-change-code", "userName", "verificationCode", "newEmail", "expirationMinutes");
 
     private final String templateName;
     private final Set<String> requiredVariables;

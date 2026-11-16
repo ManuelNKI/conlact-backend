@@ -53,6 +53,16 @@ public class EmailNotificationService implements IEmailService {
     }
 
     @Override
+    public void deliverDirectly(TemplatedEmail email) {
+        deliverEmail(email);
+    }
+
+    @Override
+    public boolean isEmailDeliveryEnabled() {
+        return enabled;
+    }
+
+    @Override
     @Async("mailTaskExecutor")
     public void sendContactNotificationToAdmin(ContactMessage contactMessage) {
         Objects.requireNonNull(contactMessage, "El mensaje de contacto es obligatorio");
@@ -76,6 +86,43 @@ public class EmailNotificationService implements IEmailService {
         } catch (Exception ex) {
             log.error("No se pudo notificar el contacto {}: {}", contactMessage.getId(), ex.getClass().getSimpleName());
         }
+    }
+
+    @Override
+    public void sendOtpCode(String recipient, String userName, String code, EmailTemplate template) {
+        Objects.requireNonNull(recipient, "El destinatario es obligatorio");
+        Objects.requireNonNull(userName, "El nombre de usuario es obligatorio");
+        Objects.requireNonNull(code, "El código OTP es obligatorio");
+        Objects.requireNonNull(template, "La plantilla es obligatoria");
+
+        if (!enabled) {
+            throw new EmailDeliveryException("El envío de correos está deshabilitado. Configure SMTP y MAIL_ENABLED");
+        }
+
+        if (!code.matches("\\d{6}")) {
+            throw new IllegalArgumentException("El código OTP debe tener exactamente 6 dígitos");
+        }
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("userName", userName);
+        variables.put("expirationMinutes", "10");
+
+        String subject;
+        switch (template) {
+            case PASSWORD_RESET_CODE -> {
+                variables.put("resetCode", code);
+                subject = "[CONLAC-T] Código de recuperación de contraseña";
+            }
+            case EMAIL_CHANGE_CODE -> {
+                variables.put("verificationCode", code);
+                variables.put("newEmail", recipient);
+                subject = "[CONLAC-T] Código de verificación de correo";
+            }
+            default -> throw new IllegalArgumentException("Plantilla no válida para OTP: " + template);
+        }
+
+        deliverEmail(new TemplatedEmail(recipient, subject, template, variables));
+        log.info("Código OTP enviado a {} con plantilla {}", recipient, template);
     }
 
     private void deliverEmail(TemplatedEmail email) {
