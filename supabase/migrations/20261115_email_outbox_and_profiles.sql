@@ -34,5 +34,45 @@ CREATE TABLE IF NOT EXISTS public.email_outbox (
 
 CREATE INDEX IF NOT EXISTS idx_email_outbox_pending ON public.email_outbox(status, next_retry_at) WHERE status = 'PENDING';
 
+-- 4. Tablas para retos OTP de recuperación de contraseña y cambio de correo (Heydi)
+CREATE TABLE IF NOT EXISTS public.password_reset_challenges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id VARCHAR(64) NOT NULL UNIQUE,
+    user_id UUID,
+    email VARCHAR(254) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 5,
+    reset_token VARCHAR(64) UNIQUE,
+    is_verified BOOLEAN NOT NULL DEFAULT false,
+    is_consumed BOOLEAN NOT NULL DEFAULT false,
+    expires_at TIMESTAMPTZ NOT NULL,
+    resend_after TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_reset_challenges_req ON public.password_reset_challenges(request_id);
+CREATE INDEX IF NOT EXISTS idx_reset_challenges_token ON public.password_reset_challenges(reset_token);
+
+CREATE TABLE IF NOT EXISTS public.email_change_challenges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id VARCHAR(64) NOT NULL UNIQUE,
+    user_id UUID NOT NULL,
+    current_email VARCHAR(254) NOT NULL,
+    new_email VARCHAR(254) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    max_attempts INTEGER NOT NULL DEFAULT 5,
+    is_consumed BOOLEAN NOT NULL DEFAULT false,
+    expires_at TIMESTAMPTZ NOT NULL,
+    resend_after TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_challenges_req ON public.email_change_challenges(request_id);
+CREATE INDEX IF NOT EXISTS idx_email_challenges_user ON public.email_change_challenges(user_id);
+
 -- RLS para email_outbox
 ALTER TABLE public.email_outbox ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.password_reset_challenges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_change_challenges ENABLE ROW LEVEL SECURITY;
