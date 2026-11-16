@@ -58,8 +58,9 @@ public class SecurityConfig {
                         // Preflight requests CORS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Autenticación pública (Login)
+                        // Autenticación pública (Login, recuperación de contraseña, verificación de sesión)
                         .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/session").permitAll()
 
                         // Endpoints públicos del frontend (Tienda, Asociaciones, Recetas, Turismo, Testimonios, Páginas CMS, Capacitación)
                         .requestMatchers(HttpMethod.GET, "/api/associations/**", "/api/asociaciones/**").permitAll()

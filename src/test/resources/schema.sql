@@ -1034,4 +1034,37 @@ ALTER TABLE public.associations
     ADD COLUMN IF NOT EXISTS bpm_registration text,
     ADD COLUMN IF NOT EXISTS fields_json jsonb DEFAULT '[]'::jsonb;
 
+-- ------------------------------------------------------------
+-- 21. Retos de recuperación y cambio de correo OTP (Heydi / Identidad)
+-- ------------------------------------------------------------
+create table if not exists public.password_reset_challenges (
+    id uuid primary key default gen_random_uuid(),
+    request_id varchar(64) not null unique,
+    user_id uuid,
+    email varchar(254) not null,
+    code varchar(6) not null,
+    attempts integer not null default 0,
+    max_attempts integer not null default 5,
+    reset_token varchar(64) unique,
+    is_verified boolean not null default false,
+    is_consumed boolean not null default false,
+    expires_at timestamptz not null,
+    resend_after timestamptz,
+    created_at timestamptz not null default now()
+);
+
+create table if not exists public.email_change_challenges (
+    id uuid primary key default gen_random_uuid(),
+    request_id varchar(64) not null unique,
+    user_id uuid not null,
+    current_email varchar(254) not null,
+    new_email varchar(254) not null,
+    code varchar(6) not null,
+    attempts integer not null default 0,
+    max_attempts integer not null default 5,
+    is_consumed boolean not null default false,
+    expires_at timestamptz not null,
+    resend_after timestamptz,
+    created_at timestamptz not null default now()
+);
 commit;
