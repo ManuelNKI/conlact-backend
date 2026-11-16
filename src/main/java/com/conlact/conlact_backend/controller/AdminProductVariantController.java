@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping({"/api/admin/variantes", "/api/admin/variants"})
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'EDITOR')")
 @RequiredArgsConstructor
 public class AdminProductVariantController {
     private final ProductVariantService productVariantService;

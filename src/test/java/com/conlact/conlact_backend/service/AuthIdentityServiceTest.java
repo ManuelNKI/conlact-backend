@@ -1,6 +1,9 @@
 package com.conlact.conlact_backend.service;
 
-import com.conlact.conlact_backend.dto.user.StaffUserResponse;
+import com.conlact.conlact_backend.dto.auth.EmailChangeResult;
+import com.conlact.conlact_backend.repository.AuthSessionRepository;
+import com.conlact.conlact_backend.security.AuthSecrets;
+import com.conlact.conlact_backend.email.EmailDeliveryException;
 import com.conlact.conlact_backend.email.EmailTemplate;
 import com.conlact.conlact_backend.email.IEmailService;
 import com.conlact.conlact_backend.entity.EmailChangeChallenge;
@@ -8,7 +11,6 @@ import com.conlact.conlact_backend.entity.PasswordResetChallenge;
 import com.conlact.conlact_backend.entity.Profile;
 import com.conlact.conlact_backend.entity.enums.UserRole;
 import com.conlact.conlact_backend.exception.BadRequestException;
-import com.conlact.conlact_backend.exception.ConflictException;
 import com.conlact.conlact_backend.repository.EmailChangeChallengeRepository;
 import com.conlact.conlact_backend.repository.PasswordResetChallengeRepository;
 import com.conlact.conlact_backend.repository.ProfileRepository;
@@ -43,6 +45,15 @@ class AuthIdentityServiceTest {
     private EmailChangeChallengeRepository emailChangeChallengeRepository;
 
     @Mock
+    private AuthSessionRepository sessionRepository;
+
+    @Mock
+    private AccountPasswordChecker passwordChecker;
+
+    @Mock
+    private AuthRateLimiter rateLimiter;
+
+    @Mock
     private IEmailService emailService;
 
     private AuthIdentityService authIdentityService;
@@ -53,8 +64,12 @@ class AuthIdentityServiceTest {
                 profileRepository,
                 resetChallengeRepository,
                 emailChangeChallengeRepository,
+                sessionRepository,
                 emailService,
-                "", "", ""
+                passwordChecker,
+                rateLimiter,
+                "",
+                ""
         );
     }
 
@@ -83,16 +98,17 @@ class AuthIdentityServiceTest {
         verify(resetChallengeRepository).save(challengeCaptor.capture());
         PasswordResetChallenge savedChallenge = challengeCaptor.getValue();
 
-        assertThat(savedChallenge.getCode()).matches("\\d{6}");
-        assertThat(savedChallenge.getEmail()).isEqualTo("heydi@conlact.ec");
-        assertThat(savedChallenge.getUserId()).isEqualTo(userId);
-
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
         verify(emailService).sendOtpCode(
                 eq("heydi@conlact.ec"),
                 eq("Heydi Pérez"),
-                eq(savedChallenge.getCode()),
+                codeCaptor.capture(),
                 eq(EmailTemplate.PASSWORD_RESET_CODE)
         );
+        assertThat(codeCaptor.getValue()).matches("\\d{6}");
+        assertThat(savedChallenge.getCode()).isEqualTo(AuthSecrets.sha256(codeCaptor.getValue()));
+        assertThat(savedChallenge.getEmail()).isEqualTo("heydi@conlact.ec");
+        assertThat(savedChallenge.getUserId()).isEqualTo(userId);
     }
 
     @Test
@@ -112,7 +128,7 @@ class AuthIdentityServiceTest {
     void shouldVerifyResetCodeSuccessfully() {
         PasswordResetChallenge challenge = PasswordResetChallenge.builder()
                 .requestId("req-123")
-                .code("482910")
+                .code(AuthSecrets.sha256("482910"))
                 .attempts(0)
                 .maxAttempts(5)
                 .isVerified(false)
@@ -126,7 +142,7 @@ class AuthIdentityServiceTest {
 
         assertThat(token).isNotBlank();
         assertThat(challenge.isVerified()).isTrue();
-        assertThat(challenge.getResetToken()).isEqualTo(token);
+        assertThat(challenge.getResetToken()).isEqualTo(AuthSecrets.sha256(token));
         verify(resetChallengeRepository).save(challenge);
     }
 
@@ -135,7 +151,7 @@ class AuthIdentityServiceTest {
     void shouldIncrementAttemptsAndFailOnInvalidCode() {
         PasswordResetChallenge challenge = PasswordResetChallenge.builder()
                 .requestId("req-123")
-                .code("482910")
+                .code(AuthSecrets.sha256("482910"))
                 .attempts(0)
                 .maxAttempts(5)
                 .isVerified(false)
@@ -158,7 +174,7 @@ class AuthIdentityServiceTest {
     void shouldBlockAfterFiveFailedAttempts() {
         PasswordResetChallenge challenge = PasswordResetChallenge.builder()
                 .requestId("req-123")
-                .code("482910")
+                .code(AuthSecrets.sha256("482910"))
                 .attempts(4)
                 .maxAttempts(5)
                 .isVerified(false)
@@ -180,7 +196,7 @@ class AuthIdentityServiceTest {
     void shouldFinishPasswordResetSuccessfully() {
         UUID userId = UUID.randomUUID();
         PasswordResetChallenge challenge = PasswordResetChallenge.builder()
-                .resetToken("token-abc")
+                .resetToken(AuthSecrets.sha256("token-abc"))
                 .userId(userId)
                 .email("user@conlact.ec")
                 .isVerified(true)
@@ -188,7 +204,14 @@ class AuthIdentityServiceTest {
                 .expiresAt(OffsetDateTime.now().plusSeconds(200))
                 .build();
 
-        when(resetChallengeRepository.findByResetToken("token-abc")).thenReturn(Optional.of(challenge));
+        when(resetChallengeRepository.findByResetToken(AuthSecrets.sha256("token-abc"))).thenReturn(Optional.of(challenge));
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(Profile.builder()
+                .id(userId)
+                .fullName("Usuario")
+                .email("user@conlact.ec")
+                .role(UserRole.admin)
+                .isActive(true)
+                .build()));
 
         authIdentityService.finishPasswordReset("token-abc", "NuevaClave123!", "NuevaClave123!");
 
@@ -233,15 +256,16 @@ class AuthIdentityServiceTest {
         verify(emailChangeChallengeRepository).save(captor.capture());
         EmailChangeChallenge saved = captor.getValue();
 
-        assertThat(saved.getCode()).matches("\\d{6}");
-        assertThat(saved.getNewEmail()).isEqualTo("nuevo@conlact.ec");
-
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
         verify(emailService).sendOtpCode(
                 eq("nuevo@conlact.ec"),
                 eq("Heydi"),
-                eq(saved.getCode()),
+                codeCaptor.capture(),
                 eq(EmailTemplate.EMAIL_CHANGE_CODE)
         );
+        assertThat(codeCaptor.getValue()).matches("\\d{6}");
+        assertThat(saved.getCode()).isEqualTo(AuthSecrets.sha256(codeCaptor.getValue()));
+        assertThat(saved.getNewEmail()).isEqualTo("nuevo@conlact.ec");
     }
 
     @Test
@@ -251,8 +275,9 @@ class AuthIdentityServiceTest {
         EmailChangeChallenge challenge = EmailChangeChallenge.builder()
                 .requestId("req-email-1")
                 .userId(userId)
+                .currentEmail("viejo@conlact.ec")
                 .newEmail("destino@conlact.ec")
-                .code("654321")
+                .code(AuthSecrets.sha256("654321"))
                 .attempts(0)
                 .maxAttempts(5)
                 .isConsumed(false)
@@ -271,11 +296,129 @@ class AuthIdentityServiceTest {
         when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
         when(profileRepository.save(any(Profile.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        StaffUserResponse updated = authIdentityService.verifyEmailChange(userId, "req-email-1", "654321");
+        EmailChangeResult updated = authIdentityService.verifyEmailChange(userId, "req-email-1", "654321");
 
-        assertThat(updated.email()).isEqualTo("destino@conlact.ec");
+        assertThat(updated.profile().email()).isEqualTo("destino@conlact.ec");
+        assertThat(updated.user().appMetadata().get("role")).isEqualTo("editor");
+        assertThat(updated.sessionToken()).isNotBlank();
         assertThat(challenge.isConsumed()).isTrue();
         assertThat(profile.getEmail()).isEqualTo("destino@conlact.ec");
         verify(profileRepository).save(profile);
+        verify(emailChangeChallengeRepository).deleteByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("OTP Reset: un código expirado no se puede verificar")
+    void shouldRejectExpiredResetCode() {
+        PasswordResetChallenge challenge = PasswordResetChallenge.builder()
+                .requestId("req-exp")
+                .code(AuthSecrets.sha256("482910"))
+                .attempts(0)
+                .maxAttempts(5)
+                .isConsumed(false)
+                .expiresAt(OffsetDateTime.now().minusSeconds(1))
+                .build();
+        when(resetChallengeRepository.findByRequestId("req-exp")).thenReturn(Optional.of(challenge));
+
+        assertThatThrownBy(() -> authIdentityService.verifyResetCode("req-exp", "482910"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("expirado");
+    }
+
+    @Test
+    @DisplayName("OTP Reset: un código ya consumido no se reutiliza")
+    void shouldRejectConsumedResetCode() {
+        PasswordResetChallenge challenge = PasswordResetChallenge.builder()
+                .requestId("req-used")
+                .code(AuthSecrets.sha256("482910"))
+                .attempts(0)
+                .maxAttempts(5)
+                .isConsumed(true)
+                .expiresAt(OffsetDateTime.now().plusMinutes(5))
+                .build();
+        when(resetChallengeRepository.findByRequestId("req-used")).thenReturn(Optional.of(challenge));
+
+        assertThatThrownBy(() -> authIdentityService.verifyResetCode("req-used", "482910"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("expirado");
+    }
+
+    @Test
+    @DisplayName("OTP Reset: si SMTP falla, el reto no queda guardado como utilizable")
+    void shouldDiscardChallengeWhenSmtpFails() {
+        Profile profile = Profile.builder()
+                .id(UUID.randomUUID())
+                .fullName("Heydi")
+                .email("heydi@conlact.ec")
+                .role(UserRole.admin)
+                .isActive(true)
+                .build();
+        when(profileRepository.findByEmailIgnoreCase("heydi@conlact.ec")).thenReturn(Optional.of(profile));
+        doThrow(new EmailDeliveryException("smtp down")).when(emailService)
+                .sendOtpCode(any(), any(), any(), any());
+
+        assertThatThrownBy(() -> authIdentityService.requestPasswordReset("heydi@conlact.ec"))
+                .isInstanceOf(EmailDeliveryException.class);
+
+        verify(resetChallengeRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("OTP Reset: el reenvío respeta la espera y luego rota el código")
+    void shouldEnforceResendCooldownAndThenRotateCode() {
+        UUID userId = UUID.randomUUID();
+        PasswordResetChallenge challenge = PasswordResetChallenge.builder()
+                .requestId("req-resend")
+                .userId(userId)
+                .email("heydi@conlact.ec")
+                .code("111111")
+                .attempts(1)
+                .maxAttempts(5)
+                .isConsumed(false)
+                .expiresAt(OffsetDateTime.now().plusMinutes(5))
+                .resendAfter(OffsetDateTime.now().plusSeconds(30))
+                .build();
+        Profile profile = Profile.builder().id(userId).fullName("Heydi").email("heydi@conlact.ec")
+                .role(UserRole.admin).isActive(true).build();
+        when(resetChallengeRepository.findByRequestId("req-resend")).thenReturn(Optional.of(challenge));
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(profile));
+
+        assertThatThrownBy(() -> authIdentityService.resendPasswordReset("req-resend"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("Espera");
+        verify(emailService, never()).sendOtpCode(any(), any(), any(), any());
+
+        challenge.setResendAfter(OffsetDateTime.now().minusSeconds(1));
+        Map<String, Object> resent = authIdentityService.resendPasswordReset("req-resend");
+
+        assertThat(resent.get("requestId")).isEqualTo("req-resend");
+        assertThat(challenge.getAttempts()).isEqualTo(1);
+        ArgumentCaptor<String> codeCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendOtpCode(eq("heydi@conlact.ec"), eq("Heydi"), codeCaptor.capture(), eq(EmailTemplate.PASSWORD_RESET_CODE));
+        assertThat(codeCaptor.getValue()).matches("\\d{6}");
+        assertThat(challenge.getCode()).isEqualTo(AuthSecrets.sha256(codeCaptor.getValue()));
+    }
+
+    @Test
+    @DisplayName("OTP Reset: restablecer no reactiva una cuenta deshabilitada")
+    void shouldNotReactivateDisabledAccountOnPasswordReset() {
+        UUID userId = UUID.randomUUID();
+        PasswordResetChallenge challenge = PasswordResetChallenge.builder()
+                .resetToken(AuthSecrets.sha256("token-off"))
+                .userId(userId)
+                .email("off@conlact.ec")
+                .isVerified(true)
+                .isConsumed(false)
+                .expiresAt(OffsetDateTime.now().plusMinutes(2))
+                .build();
+        when(resetChallengeRepository.findByResetToken(AuthSecrets.sha256("token-off"))).thenReturn(Optional.of(challenge));
+        when(profileRepository.findById(userId)).thenReturn(Optional.of(Profile.builder()
+                .id(userId).fullName("Inactivo").email("off@conlact.ec").role(UserRole.editor).isActive(false).build()));
+
+        assertThatThrownBy(() -> authIdentityService.finishPasswordReset("token-off", "NuevaClave123!", "NuevaClave123!"))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessageContaining("no está activa");
+        assertThat(challenge.isConsumed()).isFalse();
+        verify(resetChallengeRepository, never()).deleteByUserId(userId);
     }
 }

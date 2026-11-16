@@ -29,6 +29,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
+                // La sesión de identidad viaja en cookie SameSite. El filtro de origen cubre los POST de /api/auth.
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
@@ -58,9 +59,10 @@ public class SecurityConfig {
                         // Preflight requests CORS
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // Autenticación pública (Login, recuperación de contraseña, verificación de sesión)
-                        .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
+                        // Autenticación pública. No hay registro abierto: cualquier otra ruta de /api/auth exige sesión.
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/logout", "/api/auth/recuperar-password").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/session").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/cambiar-correo").authenticated()
 
                         // Endpoints públicos del frontend (Tienda, Asociaciones, Recetas, Turismo, Testimonios, Páginas CMS, Capacitación)
                         .requestMatchers(HttpMethod.GET, "/api/associations/**", "/api/asociaciones/**").permitAll()
@@ -81,7 +83,26 @@ public class SecurityConfig {
                         // Webhooks de pasarelas de pago (PayPhone u otros)
                         .requestMatchers(HttpMethod.POST, "/api/webhooks/**").permitAll()
 
-                        // Endpoints Administrativos y Backoffice (Requieren ROL ADMIN vía Supabase JWT)
+                        // Usuarios y confirmación de pagos quedan solo en admin. El editor entra al CMS ya anotado.
+                        .requestMatchers("/api/admin/usuarios/**", "/api/admin/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/pedidos/**", "/api/admin/orders/**").hasRole("ADMIN")
+                        .requestMatchers(
+                                "/api/admin/productos/**",
+                                "/api/admin/products/**",
+                                "/api/admin/variantes/**",
+                                "/api/admin/variants/**",
+                                "/api/admin/asociaciones/**",
+                                "/api/admin/associations/**"
+                        ).hasAnyRole("ADMIN", "EDITOR")
+                        .requestMatchers(
+                                "/api/admin/paginas/**",
+                                "/api/admin/contenidos/**",
+                                "/api/admin/secciones/**",
+                                "/api/admin/recetas/**",
+                                "/api/admin/recipes/**",
+                                "/api/admin/turismo/**",
+                                "/api/admin/tourism/**"
+                        ).hasAnyRole("ADMIN", "EDITOR")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // Cualquier otra petición no especificada requiere autenticación
